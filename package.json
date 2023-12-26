@@ -4,7 +4,7 @@
   "author": "",
   "license": "ISC",
   "description": "",
-  "main": "./main/index.js",
+  "main": "./dist/index.js",
   "scripts": {
     "dev": "concurrently 'tsc -w' 'nodemon ./build/index.js'"
   },
