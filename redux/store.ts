@@ -1,9 +1,9 @@
 import { configureStore } from '@reduxjs/toolkit'
-import { scheduleSlice } from './slice'
+import { appState } from './slice'
 
 export const store = configureStore({
     reducer: {
-        schedule: scheduleSlice.reducer
+        appState: appState.reducer
     },
 })
 

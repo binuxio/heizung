@@ -15,8 +15,8 @@ export const displayTitleByLocale = (locale, selectedDate, format) => {
     if (format !== undefined) return selectedDate.clone().format(format)
 
     switch (locale) {
-        case 'en':
-            return selectedDate.clone().format('MMMM YY')
+        case 'de':
+            return selectedDate.clone().format('MMMM YYYY')
         default:
             return selectedDate.clone().format('MMMM YYYY')
     }

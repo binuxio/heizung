@@ -1,64 +1,37 @@
-import { createSlice } from '@reduxjs/toolkit'
+import { createSlice, current } from '@reduxjs/toolkit'
 import type { PayloadAction } from '@reduxjs/toolkit'
 import moment from 'moment'
 import { EventDetails, Schedule, SpecialEvent, WeeklyEvent } from '../src/components/types'
 
 
-interface SelectedEvents {
-    weekDayDate: string,
-    events: EventDetails[]
-}
 
 interface Slice {
-    schedule: Schedule,
-    selectedEvents: SelectedEvents
+    isSyncSchedule: boolean
+    triggerCalenderRerender: boolean
+    scheduleEditorStackScreenOpen: boolean
 }
 
 const initialState: Slice = {
-    schedule: [],
-    selectedEvents: {
-        weekDayDate: "",
-        events: []
-    }
+    isSyncSchedule: false,
+    triggerCalenderRerender: false,
+    scheduleEditorStackScreenOpen: false
 }
 
-export const scheduleSlice = createSlice({
-    name: 'schedule',
+export const appState = createSlice({
+    name: 'appState',
     initialState,
     reducers: {
-        setSchedule: (state, action: PayloadAction<number>) => {
-            state
+        setScheduleStackScreenOpen(state, actions: PayloadAction<boolean>) {
+            state.scheduleEditorStackScreenOpen = actions.payload
         },
-        setSelectedEvents: (state, action: PayloadAction<SelectedEvents>) => {
-            // const serializedEvents = action.payload.events.map(event => ({
-            //     ...event,
-            //     startMoment: moment(event.startMoment)
-            // }));
-
-            // state.selectedEvents = { ...action.payload };
+        setIsSyncSchedule(state, actions: PayloadAction<boolean>) {
+            state.isSyncSchedule = actions.payload
         },
-
-        fetchEvents: (state) => {
-            console.log("fetching schedule")
-            state.schedule = [
-                { start: { day: 1, time: '04:10' }, duration: "03:00" },
-                { start: { day: 7, time: '04:10' }, duration: "03:00" },
-                { start: { day: 3, time: '04:10' }, duration: "03:00" },
-                { start: { day: 1, time: '04:10' }, duration: "03:00" },
-                { start: { day: 6, time: '04:10' }, duration: "03:00" },
-                { start: { day: 4, time: '04:10' }, duration: "03:00" },
-                { start: { day: 7, time: '04:10' }, duration: "03:00" },
-                { start: { day: 5, time: '04:10' }, duration: "03:00" },
-                { start: { day: 3, time: '10:10' }, duration: "03:00" },
-                { start: { date: "10-02-2024", time: "09:00" }, duration: "03:00" },
-                { start: { day: 4, time: '09:10' }, duration: "01:00" },
-                { start: { date: "10-02-2024", time: "09:00" }, duration: "03:00" },
-                { start: { day: 2, time: '04:10' }, duration: "03:00" },
-                { start: { date: "10-02-2024", time: "09:00" }, duration: "03:00" }
-            ]
+        triggerCalenderRerender(state, actions: PayloadAction<boolean>) {
+            state.triggerCalenderRerender = actions.payload
         }
     }
 })
 
-export const { fetchEvents, setSchedule, setSelectedEvents } = scheduleSlice.actions
-export default scheduleSlice
+export const { triggerCalenderRerender, setIsSyncSchedule, setScheduleStackScreenOpen } = appState.actions
+export default appState

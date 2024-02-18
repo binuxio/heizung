@@ -1,4 +1,5 @@
 import { StyleSheet, Dimensions } from 'react-native';
+import theme from '../../../theme';
 
 const styles = StyleSheet.create({
     component: {
@@ -175,7 +176,7 @@ const styles = StyleSheet.create({
         alignSelf: 'center',
         borderRadius: 4 / 2,
         position: 'absolute',
-        bottom: '10%'
+        bottom: 0
     }
 });
 

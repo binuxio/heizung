@@ -3,9 +3,7 @@ const theme = {
         primary: '#0284c7',
         primaryLight: "#52c4ff",
         secondary: '#103247',
-        secondaryLight: "",
         background: "#d7f3fa",
-        backgroundLight: "",
         eventBackground: "rgb(198, 235, 245)",
     },
     shadow: {
@@ -16,7 +14,6 @@ const theme = {
         },
         shadowOpacity: 0.25,
         shadowRadius: 3.84,
-
         elevation: 5,
     }
 }

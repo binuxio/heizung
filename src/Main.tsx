@@ -1,38 +1,39 @@
 import React from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import HomeScreen from './Screen/HomeScreen';
+import HomeScreen from './TabScreens/HomeScreen';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { StyleSheet, Text, View } from 'react-native';
-import ScheduleScreen from './Screen/ScheduleScreen';
+import ScheduleScreen from './TabScreens/ScheduleScreen';
 import theme from './theme';
+import { createStackNavigator } from '@react-navigation/stack';
+import { RootStackParamList } from './TabScreens/types';
+import { ScheduleStackParamList } from './components/Schedule/StackScreens/types';
+import EventsCalendar from './components/Schedule/StackScreens/EventsCalendar';
+import ScheduleEditor from './components/Schedule/StackScreens/ScheduleEditor';
+import { useAppSelector } from '../redux/hooks';
 
-const Tab = createBottomTabNavigator();
+const Tab = createBottomTabNavigator<RootStackParamList>();
+
 
 const Main: React.FC = () => {
-
+  const scheduleEditorOpen = useAppSelector(state => state.appState.scheduleEditorStackScreenOpen)
   return (
-
-    <Tab.Navigator initialRouteName='ScheduleScreen' screenOptions={{ tabBarShowLabel: false }}>
-      <Tab.Screen name="Home" component={HomeScreen}
+    <Tab.Navigator initialRouteName='SchedueScreen' screenOptions={{
+      tabBarShowLabel: false
+    }} >
+      <Tab.Screen name="HomeScreen" component={HomeScreen}
         options={{
           header: () => <Header title='Heizung - Übersicht' />,
-          tabBarIcon: ({ focused }) => {
-            if (focused)
-              return <Ionicons name={"home-sharp"} size={25} color={theme.colors.primary} />
-            return <Ionicons name={"home-sharp"} size={25} />
-          },
+          tabBarIcon: ({ focused }) => <Ionicons name={"home-sharp"} size={25} color={focused ? theme.colors.primary : "black"} />
         }} />
-      <Tab.Screen name="ScheduleScreen" component={ScheduleScreen}
+      <Tab.Screen name="SchedueScreen" component={ScheduleScreen}
         options={{
-          header: () => null,
-          tabBarIcon: ({ focused }) => {
-            if (focused)
-              return <Ionicons name={"calendar"} size={25} color={theme.colors.primary} />
-            return <Ionicons name={"calendar"} size={25} />
-          },
-        }} />
+          tabBarStyle: { display: scheduleEditorOpen ? "none" : "flex" },
+          headerShown: false,
+          tabBarIcon: ({ focused }) => <Ionicons name={"calendar"} size={25} color={focused ? theme.colors.primary : "black"} />
+        }}
+      />
     </Tab.Navigator>
-
   );
 };
 

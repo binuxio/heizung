@@ -25,6 +25,4 @@ export type EventDetails = {
     isWeekly: boolean
     startMoment: moment.Moment
     endMoment: moment.Moment
-    weekDayDate: string
-    prevEvent?: _Event
 }

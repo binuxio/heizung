@@ -4,13 +4,14 @@ import moment from 'moment/min/moment-with-locales';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { applyLocale, displayTitleByLocale } from './src/Locale';
 import styles from './src/Style';
-import { AnyEvent, EventDetails, Schedule, SpecialEvent, WeeklyEvent, _Event } from '../../components/types';
-import { TouchableRipple } from 'react-native-paper';
+import { _Event } from '../../components/types';
+import { ProgressBar, TouchableRipple } from 'react-native-paper';
 import theme from '../../theme';
-import { StackScreenProps } from '../../Screen/types';
-import { useAppDispatch } from '../../../redux/hooks';
-import { setSelectedEvents } from '../../../redux/slice';
-
+import { StackScreenProps } from '../../TabScreens/types';
+import { useAppDispatch, useAppSelector } from '../../../redux/hooks';
+import { triggerCalenderRerender } from '../../../redux/slice';
+import getEventsFromMap from '../../components/Schedule/utils/getEventsFromMap';
+import Progress from 'react-native-progress';
 
 interface Props {
     selectedDate: string;
@@ -19,8 +20,7 @@ interface Props {
     titleFormat: string;
     weekdayFormat: string;
     locale: string;
-    schedule: Schedule;
-    renderEvent: (event: AnyEvent, index: number) => React.ReactNode;
+    renderEvent: (event: _Event, prevEvent: _Event | undefined, weekDayDateMoment: moment.Moment, index: number) => React.ReactNode;
     onDayPress?: (day: any, index: number) => void;
     themeColor: string;
     style?: React.CSSProperties;
@@ -44,36 +44,41 @@ const WeeklyCalendar = (props: Props) => {
     const [dayViewOffsets, setDayViewOffsets] = useState<any[] | undefined>(undefined)
     const [today] = useState(moment().format(props.dateFormat))
     const scrollViewRef = useRef<ScrollView>(null)
-    const [eventsToEdit, setEventsToEdit] = useState<EventDetails[] | undefined>(undefined)
-    const [weekDayToEdit, setWeekDayToEdit] = useState<moment.Moment | undefined>(undefined)
     const dispatch = useAppDispatch()
+    const triggerRerender = useAppSelector(state => state.appState.triggerCalenderRerender)
+
 
     useEffect(() => {
         applyLocale(props.locale, (cancelText: string) => setCancelText(cancelText), (confirmText: string) => setConfirmText(confirmText))
         updateCalendar()
     }, [])
 
+    useEffect(() => {
+        if (triggerRerender) {
+            console.log("rerender calendar")
+            updateCalendar()
+            dispatch(triggerCalenderRerender(false))
+        }
+    }, [triggerRerender])
+
     function updateCalendar() {
         setCalendarReady(false)
-        createWeekdays(currDate, props.schedule)
+        createWeekdays(currDate)
         setCalendarReady(true)
     }
 
-    const createWeekdays = (date: moment.Moment, schedule: Schedule) => {
+
+    const createWeekdays = (date: moment.Moment) => {
         const dayViews = []
         const offsets: any[] = []
         setWeekdays([])
         for (let i = 0; i < 7; i++) {
-            const weekdayToAddMoment = date.clone().isoWeekday(props.startWeekday + i)
+            const weekdayMoment = date.clone().isoWeekday(props.startWeekday + i).utcOffset(0)
 
-            setWeekdays(weekdays => [...weekdays, weekdayToAddMoment])
-            setWeekdayLabels(weekdayLabels => [...weekdayLabels, weekdayToAddMoment.format(props.weekdayFormat)])
+            setWeekdays(weekdays => [...weekdays, weekdayMoment])
+            setWeekdayLabels(weekdayLabels => [...weekdayLabels, weekdayMoment.format(props.weekdayFormat)])
 
-            // render schedule view
-            const weekDay = weekdayToAddMoment.isoWeekday()
-            const weekdayToAdd_date = weekdayToAddMoment.format(props.dateFormat)
-            const events: Array<_Event> = schedule.filter(weeklyEvent => weeklyEvent.start.day == weekDay && !weeklyEvent.excludedDays?.includes(weekdayToAdd_date))
-            schedule.specialDays && schedule.specialDays.forEach(specialEvent => moment(specialEvent.start.date, props.dateFormat).format(props.dateFormat) == weekdayToAdd_date && events.push(specialEvent))
+            let events: _Event[] = getEventsFromMap(weekdayMoment)
             let eventViews: React.ReactNode[] = []
 
             events.sort((a, b) => {
@@ -83,18 +88,15 @@ const WeeklyCalendar = (props: Props) => {
             });
 
             if (props.renderEvent !== undefined) {
-                eventViews = events.map((event, ii) => {
-                    // @ts-ignore
-                    event["prevEvent"] = event[ii - 1]
-                    return props.renderEvent(event, ii)
-                })
-            } else throw "Please create an Event Element for renderEvent prop"
+                eventViews = events.map((event, ii) => props.renderEvent(event, events[ii - 1], weekdayMoment.clone(), ii))
+            } else throw "Please create a Component for renderEvent prop"
+
             let dayView = <TouchableRipple rippleColor={theme.colors.primary}
                 key={i.toString()}
-                onPress={onEventPress.bind(this, events, weekdayToAddMoment.format().toString())}>
+                onPress={onEventPress.bind(this, weekdayMoment.clone().format().toString())}>
                 <View style={[styles.dayContainer, { borderBottomWidth: StyleSheet.hairlineWidth }]} onLayout={event => { offsets[i] = event.nativeEvent.layout.y }}>
                     <View style={styles.dayLabel}>
-                        <Text style={[styles.dayText, { color: props.themeColor }]}> {weekdayToAddMoment.format(props.weekdayFormat).toString()} </Text>
+                        <Text style={[styles.dayText, { color: props.themeColor }]}> {weekdayMoment.format(props.weekdayFormat).toString()} </Text>
                     </View>
                     <View style={[styles.allEvents, { margin: .4, }]}>
                         {eventViews}
@@ -107,28 +109,31 @@ const WeeklyCalendar = (props: Props) => {
         setDayViewOffsets(offsets)
     }
 
-    const onEventPress = (eventDetails: any[], weekDayDate: string) => {
-        dispatch(setSelectedEvents({ events: eventDetails, weekDayDate }));
-        props.stackprops.navigation.navigate("ScheduleEditor", {});
+    const onEventPress = (weekDayDate: string) => {
+        props.stackprops.navigation.navigate("ScheduleEditor", { weekDayDate });
     }
 
-    console.log(moment().)
     const clickLastWeekHandler = () => {
         setCalendarReady(false)
-        const lastWeekCurrDate = currDate.subtract(7, 'days')
-        setCurrDate(lastWeekCurrDate.clone())
-        setSelectedDate(lastWeekCurrDate.clone().weekday(props.startWeekday - 7))
-        createWeekdays(lastWeekCurrDate.clone(), props.schedule)
-        setCalendarReady(true)
+        setTimeout(() => {
+
+            const lastWeekCurrDate = currDate.subtract(7, 'days')
+            setSelectedDate(lastWeekCurrDate.clone().weekday(props.startWeekday - 7))
+            setCurrDate(lastWeekCurrDate.clone())
+            createWeekdays(lastWeekCurrDate.clone())
+            setCalendarReady(true)
+        }, 0);
     }
 
     const clickNextWeekHandler = () => {
         setCalendarReady(false)
-        const nextWeekCurrDate = currDate.add(7, 'days')
-        setCurrDate(nextWeekCurrDate.clone())
-        setSelectedDate(nextWeekCurrDate.clone().weekday(props.startWeekday - 7))
-        createWeekdays(nextWeekCurrDate.clone(), props.schedule)
-        setCalendarReady(true)
+        setTimeout(() => {
+            const nextWeekCurrDate = currDate.add(7, 'days')
+            setCurrDate(nextWeekCurrDate.clone())
+            setSelectedDate(nextWeekCurrDate.clone().weekday(props.startWeekday - 7))
+            createWeekdays(nextWeekCurrDate.clone())
+            setCalendarReady(true)
+        }, 0);
     }
 
     const isSelectedDate = (date: moment.Moment) => {
@@ -158,7 +163,7 @@ const WeeklyCalendar = (props: Props) => {
         setSelectedDate(pickedDate)
 
         setCalendarReady(false)
-        createWeekdays(pickedDate, props.schedule)
+        createWeekdays(pickedDate)
 
         setCalendarReady(true)
         setPickerVisible(false)
@@ -170,6 +175,8 @@ const WeeklyCalendar = (props: Props) => {
         if (props.onDayPress !== undefined) props.onDayPress(weekday.clone(), i)
     }
 
+    const isToday = (weekday: moment.Moment) => today == moment(weekday).format(props.dateFormat)
+
     return (
         <View style={[styles.component, { backgroundColor: theme.colors.background }]} >
             <View style={styles.header}>
@@ -177,7 +184,7 @@ const WeeklyCalendar = (props: Props) => {
                     <Text style={{ color: props.themeColor, fontSize: 20 }}> {'\u25C0'} </Text>
                 </TouchableOpacity>
                 <TouchableOpacity onPress={() => setPickerVisible(true)} style={[styles.titleContainer, { backgroundColor: props.themeColor }]}>
-                    <Text style={[styles.title]}>{isCalendarReady && displayTitleByLocale(props.locale, selectedDate, props.titleFormat)}</Text>
+                    <Text style={[styles.title]}>{displayTitleByLocale(props.locale, selectedDate, props.titleFormat)}</Text>
                 </TouchableOpacity>
                 <TouchableOpacity style={styles.arrowButton} onPress={clickNextWeekHandler} >
                     <Text style={{ color: props.themeColor, fontSize: 20 }}> {'\u25B6'} </Text>
@@ -186,13 +193,14 @@ const WeeklyCalendar = (props: Props) => {
             <View style={styles.week}>
                 <View style={styles.weekdayLabelContainer}>
                     {weekdays.map((weekday, i) => <View style={styles.weekdayLabel} key={i}>
-                        <Text style={[styles.weekdayLabelText, props.dayLabelStyle]}> {weekdays.length > 0 ? weekdayLabels[i] : ''} </Text>
+                        <Text style={[styles.weekdayLabelText, isToday(weekday) ? { color: props.themeColor } : {}]}> {weekdays.length > 0 ? weekdayLabels[i] : ''} </Text>
                     </View>)}
                 </View>
                 <View style={styles.weekdayNumberContainer} >
                     {weekdays.map((weekday, i) => <TouchableOpacity style={styles.weekDayNumber} onPress={onDayPress.bind(this, weekday, i)} key={i}>
                         <View style={isCalendarReady && isSelectedDate(weekday) ? [styles.weekDayNumberCircle, { backgroundColor: props.themeColor }] : {}}>
-                            <Text style={isCalendarReady && isSelectedDate(weekday) ? styles.weekDayNumberTextToday : { color: props.themeColor }}>
+                            <Text style={isSelectedDate(weekday)
+                                ? styles.weekDayNumberTextToday : { color: props.themeColor }}>
                                 {isCalendarReady ? weekday.date() : ''}
                             </Text>
                         </View>
@@ -201,6 +209,16 @@ const WeeklyCalendar = (props: Props) => {
                     </TouchableOpacity>)}
                 </View>
             </View>
+            {/* <View style={{ width: "100%", justifyContent: "center" }}>
+                <ProgressBar
+                    style={{ height: 1 }}
+                    fillStyle={{
+                        backgroundColor: theme.colors.primary, height: 1
+                    }}
+                    indeterminate
+                    color={theme.colors.primary}
+                />
+            </View> */}
             <ScrollView ref={scrollViewRef} style={styles.schedule}>
                 {scheduleView}
             </ScrollView>
@@ -229,17 +247,18 @@ const WeeklyCalendar = (props: Props) => {
                         onChange={pickerOnChange}
                         style={styles.picker}
                     />
-                </Modal>}
+                </Modal>
+            }
             {
                 Platform.OS === 'android' && isPickerVisible && <DateTimePicker
                     value={pickerDate.toDate()}
                     display='compact'
                     onChange={pickerOnChange}
                     style={styles.picker}
-                />}
-            {/* <EventsEditorModal control={{ modalOpen: modalOpen, closeModal: () => setModal(false) }} events={eventsToEdit!} weekDayDate={weekDayToEdit!} /> */}
+                />
+            }
             {(!isCalendarReady || isLoading) && <ActivityIndicator size='large' color='grey' style={styles.indicator} />}
-        </View>
+        </View >
     )
 
 };
@@ -251,7 +270,6 @@ WeeklyCalendar.defaultProps = { // All props are optional
     titleFormat: undefined,
     weekdayFormat: 'dd',
     locale: 'de',
-    schedule: undefined,
     renderEvent: undefined,
     onDayPress: undefined,
     themeColor: '#46c3ad',
