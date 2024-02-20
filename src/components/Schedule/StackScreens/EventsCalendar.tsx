@@ -1,12 +1,12 @@
 import React, { useEffect, useState } from 'react'
-import { Alert, StyleSheet, Text, View } from 'react-native'
+import { Alert, SafeAreaView, StyleSheet, Text, View } from 'react-native'
 import WeeklyCalendar from '../../../utils/weekly-calendar'
 import { Schedule } from '../../types'
 import EventDayView from '../EventDayView'
 import theme from '../../../theme'
 import { RootState } from '../../../../redux/store'
 import { useAppDispatch, useAppSelector } from '../../../../redux/hooks'
-import { StatusBar } from 'expo-status-bar'
+import { StatusBar, setStatusBarStyle, setStatusBarTranslucent } from 'expo-status-bar'
 import { triggerCalenderRerender } from '../../../../redux/slice'
 import syncSchedule from '../utils/syncSchedule'
 import { ScheduleStackScreenProps } from './types'
@@ -38,8 +38,8 @@ const EventsCalendar = ({ navigation, route }: ScheduleStackScreenProps<"EventsC
     }, [])
 
     return (
-        <View>
-            <StatusBar translucent={false} backgroundColor={theme.colors.background} animated />
+        <View style={{ backgroundColor: theme.colors.background, paddingTop: 25 }}>
+            <StatusBar translucent />
             <WeeklyCalendar
                 themeColor={theme.colors.primary}
                 renderEvent={(event, prevEvent, weekDayDate, k) => <EventDayView event={event} prevEvent={prevEvent} weekDayDateMoment={weekDayDate} key={k} />}

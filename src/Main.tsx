@@ -17,9 +17,14 @@ const Tab = createBottomTabNavigator<RootStackParamList>();
 
 const Main: React.FC = () => {
   const scheduleEditorOpen = useAppSelector(state => state.appState.scheduleEditorStackScreenOpen)
+
+
   return (
     <Tab.Navigator initialRouteName='SchedueScreen' screenOptions={{
-      tabBarShowLabel: false
+      tabBarShowLabel: false,
+      tabBarStyle: {
+        display: scheduleEditorOpen ? "none" : "flex"
+      }
     }} >
       <Tab.Screen name="HomeScreen" component={HomeScreen}
         options={{
@@ -28,7 +33,6 @@ const Main: React.FC = () => {
         }} />
       <Tab.Screen name="SchedueScreen" component={ScheduleScreen}
         options={{
-          tabBarStyle: { display: scheduleEditorOpen ? "none" : "flex" },
           headerShown: false,
           tabBarIcon: ({ focused }) => <Ionicons name={"calendar"} size={25} color={focused ? theme.colors.primary : "black"} />
         }}

@@ -28,6 +28,7 @@
     "moment": "^2.30.1",
     "react": "18.2.0",
     "react-native": "0.72.10",
+    "react-native-alert-async": "^1.0.5",
     "react-native-blur": "^3.2.2",
     "react-native-calendars": "^1.1303.0",
     "react-native-modal": "^13.0.1",

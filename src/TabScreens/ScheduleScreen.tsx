@@ -23,9 +23,6 @@ export default function ScheduleScreen({ navigation }: RootStackScreenProps<"Sch
                 }} />
             <Stack.Screen component={ScheduleEditor} name="ScheduleEditor"
                 listeners={{
-                    state: (props) => {
-                        // console.log(props)   
-                    },
                     beforeRemove: ({ }) => {
                         dispatch(setScheduleStackScreenOpen(false))
                     },
@@ -34,10 +31,10 @@ export default function ScheduleScreen({ navigation }: RootStackScreenProps<"Sch
                     }
                 }}
                 options={{
-                    presentation: "modal",
+                    presentation: "card",
                     transitionSpec: {
-                        open: { animation: "timing", config: { duration: 200 } },
-                        close: { animation: "timing", config: { duration: 200 } }
+                        open: { animation: "timing", config: { duration: 150, delay: 50 } },
+                        close: { animation: "timing", config: { duration: 150 } }
                     }
                 }} />
         </Stack.Navigator>

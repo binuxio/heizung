@@ -4,8 +4,6 @@ import StatusTable from '../components/StatusTable';
 import theme from '../theme';
 import { StackScreenProps } from '@react-navigation/stack';
 import { RootStackScreenProps } from './types';
-import { Ionicons } from '@expo/vector-icons';
-import DateTimePicker from 'react-native-ui-datepicker';
 
 export default function HomeScreen({ navigation, route }: RootStackScreenProps<"HomeScreen">) {
 
@@ -15,7 +13,6 @@ export default function HomeScreen({ navigation, route }: RootStackScreenProps<"
             <StatusTable />
             <View style={{ padding: 10, backgroundColor: theme.colors.primary }}>
                 <Text>Heizung jetzt Einschalten</Text>
-
             </View>
         </View>
     </ScrollView>
