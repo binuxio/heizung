@@ -7,11 +7,11 @@ import styles from './src/Style';
 import { _Event } from '../../components/types';
 import { ProgressBar, TouchableRipple } from 'react-native-paper';
 import theme from '../../theme';
-import { StackScreenProps } from '../../TabScreens/types';
 import { useAppDispatch, useAppSelector } from '../../../redux/hooks';
 import { triggerCalenderRerender } from '../../../redux/slice';
 import getEventsFromMap from '../../components/Schedule/utils/getEventsFromMap';
 import Progress from 'react-native-progress';
+import { ScheduleStackScreenProps } from '../../components/Schedule/StackScreens/types';
 
 interface Props {
     selectedDate: string;
@@ -26,7 +26,7 @@ interface Props {
     style?: React.CSSProperties;
     titleStyle?: React.CSSProperties;
     dayLabelStyle?: React.CSSProperties;
-    stackprops: StackScreenProps<"EventsCalendar">
+    stackprops: ScheduleStackScreenProps<"EventsCalendar">
 }
 
 const WeeklyCalendar = (props: Props) => {
@@ -73,7 +73,7 @@ const WeeklyCalendar = (props: Props) => {
         const offsets: any[] = []
         setWeekdays([])
         for (let i = 0; i < 7; i++) {
-            const weekdayMoment = date.clone().isoWeekday(props.startWeekday + i).utcOffset(0)
+            const weekdayMoment = date.clone().isoWeekday(props.startWeekday + i)
 
             setWeekdays(weekdays => [...weekdays, weekdayMoment])
             setWeekdayLabels(weekdayLabels => [...weekdayLabels, weekdayMoment.format(props.weekdayFormat)])

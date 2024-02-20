@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
-import { View, TouchableOpacity, Text, StyleSheet, ScrollView, StatusBar } from 'react-native';
+import { View, TouchableOpacity, Text, StyleSheet, ScrollView, StatusBar, Platform } from 'react-native';
 import StatusTable from '../components/StatusTable';
 import theme from '../theme';
 import { StackScreenProps } from '@react-navigation/stack';
 import { RootStackScreenProps } from './types';
 import { Ionicons } from '@expo/vector-icons';
+import DateTimePicker from 'react-native-ui-datepicker';
 
 export default function HomeScreen({ navigation, route }: RootStackScreenProps<"HomeScreen">) {
 

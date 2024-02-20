@@ -9,19 +9,27 @@ import { EventDetails, _Event } from '../../types';
 // import { StatusBar } from 'expo-status-bar';
 import "moment/locale/de"
 import { BottomSheetBackdrop, BottomSheetBackdropProps, BottomSheetModal, BottomSheetModalProvider } from '@gorhom/bottom-sheet';
-import { } from '@react-native-community/datetimepicker';
-import DateTimePicker from '@react-native-community/datetimepicker';
+import { DateTimePickerEvent } from '@react-native-community/datetimepicker';
 import { ScheduleStackScreenProps } from './types';
 import { Switch } from 'react-native-paper';
+import crossesDays from '../utils/crossesDays';
+import DateTimePicker from '@react-native-community/datetimepicker';
+import endTimeisSmaller from '../utils/endTimeisSmaller';
 
-
+const oldEvents = []
+const newEvents = []
+let currentlyEditingEvent: EventDetails | undefined = undefined
 const ScheduleEditor = ({ navigation, route }: ScheduleStackScreenProps<"ScheduleEditor">) => {
     const { weekDayDate } = route.params
     const weekDayDateMoment = moment(weekDayDate)
     const [loading, setLoading] = useState(true)
     const [events, setEvents] = useState<EventDetails[]>([])
-    const [eventToEdit, setEventToEdit] = useState<number | undefined>(undefined)
-    const [newEvent, setNewEvent] = useState()
+    const [eventToEdit, setEventToEdit] = useState<EventDetails | undefined>(undefined)
+    const [eventToEditIndex, setEventToEditIndex] = useState<undefined | number>(undefined)
+    const [newEvent, setNewEvent] = useState<_Event | undefined>(undefined)
+    const [eventIsWeekly, setEventIsWeekly] = useState(true)
+    const [timeBeingSet, setTimeBeingSet] = useState<"start" | "end" | undefined>(undefined)
+    const [isPickerVisible, setPickerVisible] = useState(false)
 
     useEffect(() => {
         setTimeout(() => {
@@ -64,9 +72,17 @@ const ScheduleEditor = ({ navigation, route }: ScheduleStackScreenProps<"Schedul
         })
     }, [])
 
-    const onEventPress = (index: number) => {
+    const openEventEditor = (index: number) => {
+        const ev = events[index]
+        setEventToEdit(ev)
+        setEventIsWeekly(ev.isWeekly)
         openBottomSheet()
-        setEventToEdit(index)
+    }
+
+    const createEvent = () => {
+        setEventToEdit({ startMoment: undefined, endMoment: undefined, isWeekly: true })
+        setEventIsWeekly(true)
+        openBottomSheet()
     }
 
     const bottomSheetModalRef = useRef<BottomSheetModal>(null);
@@ -77,8 +93,79 @@ const ScheduleEditor = ({ navigation, route }: ScheduleStackScreenProps<"Schedul
 
     const closeBottomSheet = () => {
         bottomSheetModalRef.current!.close();
-
     };
+
+    const pickerOnChange = (_event: DateTimePickerEvent, pickedDate: Date | undefined) => {
+        if (Platform.OS === 'android') {
+            setPickerVisible(false)
+            if (_event.type == "dismissed") return
+            if (pickedDate !== undefined) {
+                if (timeBeingSet == "start") {
+                    const updatedMoment = weekDayDateMoment
+                        .clone()
+                        .set("hours", pickedDate.getHours())
+                        .set("minutes", pickedDate.getMinutes());
+
+                    if (eventToEdit?.endMoment) {
+                        if (endTimeisSmaller(updatedMoment, eventToEdit?.endMoment))
+                            eventToEdit?.endMoment.set("day", weekDayDateMoment.day() + 1)
+                        else
+                            eventToEdit?.endMoment.set("day", weekDayDateMoment.day())
+                    }
+
+                    // @ts-ignore
+                    setEventToEdit({
+                        ...eventToEdit,
+                        startMoment: updatedMoment,
+                    });
+                } else if (timeBeingSet === "end") {
+                    const updatedMoment = weekDayDateMoment
+                        .clone()
+                        .set("hours", pickedDate.getHours())
+                        .set("minutes", pickedDate.getMinutes());
+
+                    if (eventToEdit?.startMoment) {
+                        if (endTimeisSmaller(eventToEdit!.startMoment, updatedMoment))
+                            updatedMoment.set("day", weekDayDateMoment.day() + 1)
+                    }
+
+                    //@ts-ignore
+                    setEventToEdit({
+                        ...eventToEdit,
+                        endMoment: updatedMoment,
+                    });
+                }
+            }
+        }
+        else {
+
+        }
+    }
+
+    const confirmPickerHandler = (pickedDate: Date) => { // ios
+        setPickerVisible(false)
+    }
+
+    const calculateDuration = () => {
+        if (eventToEdit && eventToEdit.startMoment && eventToEdit.endMoment) {
+            const duration = moment.duration(eventToEdit.endMoment.diff(eventToEdit.startMoment));
+            const hours = duration.hours();
+            const minutes = duration.minutes();
+            if (hours == 0 && minutes == 0) return "24:00"
+            return `${hours}:${minutes < 10 ? '0' : ''}${minutes}`;
+        }
+        return "--:--";
+    };
+
+    const datepickerStartTime = () => {
+        if (!eventToEdit) return moment().startOf('day').toDate()
+        if (timeBeingSet == "start") {
+            if (eventToEdit?.startMoment) return eventToEdit.startMoment.toDate()
+        } else {
+            if (eventToEdit?.endMoment) return eventToEdit.endMoment.toDate()
+        }
+        return moment().startOf('day').toDate()
+    }
 
     return (
         <View>
@@ -89,20 +176,19 @@ const ScheduleEditor = ({ navigation, route }: ScheduleStackScreenProps<"Schedul
                         <View>
                             {events && events.map((event, i) => {
                                 const { startMoment, endMoment, isWeekly } = event
-                                const crossesDay = startMoment.format('YYYY-MM-DD') !== endMoment.format('YYYY-MM-DD')
 
                                 let prevEndTimeConflicting = false
                                 const prevEvent = events[i - 1]
                                 if (prevEvent) prevEndTimeConflicting = prevEvent.endMoment >= prevEvent.startMoment
 
-                                return <TouchableOpacity activeOpacity={.4} style={[styles.eventContainer, { marginBottom: 10 }]} onPress={() => onEventPress(i)} key={i}>
+                                return <TouchableOpacity activeOpacity={.4} style={[styles.eventContainer, { marginBottom: 10 }]} onPress={() => openEventEditor(i)} key={i}>
                                     <View style={styles.timeContainer}>
                                         <Ionicons name='power' style={[styles.powerIcon, { marginRight: 5, color: "green" }]} />
                                         <Text style={[styles.durationText, prevEndTimeConflicting ? { color: "red" } : {}]}>{startMoment.format("HH:mm")}</Text>
                                     </View>
                                     <View style={styles.timeContainer}>
                                         <Ionicons name='power' style={[styles.powerIcon, { marginRight: 5, color: "orange" }]} />
-                                        <Text style={styles.durationText}>{!crossesDay ? endMoment.format("HH:mm") : endMoment.format("dd, HH:mm")}</Text>
+                                        <Text style={styles.durationText}>{!crossesDays(startMoment, endMoment) ? endMoment.format("HH:mm") : endMoment.format("dd, HH:mm")}</Text>
                                     </View>
                                     <View style={{ flex: 1, flexDirection: "row", justifyContent: "flex-end" }}>
                                         {!isWeekly && <MaterialCommunityIcons name='repeat-once' style={[{ fontSize: 30, color: "grey" }]} />}
@@ -112,62 +198,79 @@ const ScheduleEditor = ({ navigation, route }: ScheduleStackScreenProps<"Schedul
 
                             })}
                         </View>
-                        <View style={{ backgroundColor: theme.colors.eventBackground, justifyContent: "center", alignItems: "center" }}>
-                            <View>
-                                <TouchableOpacity style={{ alignSelf: 'flex-start' }}>
-                                    <AntDesign name='pluscircleo' size={30} color={theme.colors.primary} />
-                                </TouchableOpacity>
-                            </View>
-                        </View>
+                        <TouchableOpacity onPress={createEvent} activeOpacity={.4} style={{ backgroundColor: theme.colors.eventBackground, justifyContent: "center", alignItems: "center", height: 40 }}>
+                            <AntDesign name='pluscircleo' size={25} color={theme.colors.primary} />
+                        </TouchableOpacity>
                     </View>
                 </ScrollView> || <ActivityIndicator size='large' color={theme.colors.primary} style={styles.indicator} />
             }
             <BottomSheetModalProvider>
                 <BottomSheetModal
                     ref={bottomSheetModalRef}
-                    index={0} // Initial snap point
-                    snapPoints={['45%', '100%']}
-
-                    backdropComponent={useCallback(
-                        (props: BottomSheetBackdropProps) => (
-                            <BottomSheetBackdrop
-                                {...props}
-                                onPress={() => {
-                                    bottomSheetModalRef.current!.present();
-                                }}
-                                disappearsOnIndex={-1}
-                                appearsOnIndex={1}
-                            />
-                        ), [])}
-
+                    snapPoints={['30%', '80%']}
+                    enablePanDownToClose={false}
+                    // backdropComponent={useCallback(
+                    //     (props: BottomSheetBackdropProps) => (
+                    //         <BottomSheetBackdrop
+                    //             {...props}
+                    //             disappearsOnIndex={-1}
+                    //             appearsOnIndex={1}
+                    //         // pressBehavior={"none"}
+                    //         />
+                    //     ), [])}
                     handleComponent={() => <View style={bStyles.handle} />}
                 >
                     <View style={bStyles.bottomSheetContent}>
                         {/* time setter */}
-                        <View style={{ flexDirection: "row" }}>
+                        {<View style={{ flexDirection: "row" }}>
                             <View style={{ flex: 1 }}>
                                 <View style={{ flexDirection: "row", alignItems: "center", gap: 5, justifyContent: "center" }}>
                                     <Ionicons name='power' style={{ fontSize: 20, color: "green" }} />
                                     <Text style={{ fontSize: 20, }}>Einschalten</Text>
                                 </View>
-                                <TouchableOpacity activeOpacity={.4} style={{ alignSelf: "center", flexDirection: "row", backgroundColor: "white", borderRadius: 10, padding: 5, marginTop: 5 }}>
-                                    <Text style={{ fontSize: 25 }}>{moment().format("HH:mm")}</Text>
+                                <TouchableOpacity activeOpacity={.4} onPress={() => { setTimeBeingSet("start"); setPickerVisible(true) }}
+                                    style={editorModalStyles.timeBox}>
+                                    <Text style={{ fontSize: 25, textAlign: "center", color: theme.colors.primary }}>
+                                        {eventToEdit?.startMoment && eventToEdit.startMoment.clone().format("HH:mm") || "--:--"}
+                                    </Text>
+                                    <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "center" }}>
+                                        <Text style={editorModalStyles.weekDay}>
+                                            {weekDayDateMoment.format("dddd")}
+                                        </Text>
+                                    </View>
                                 </TouchableOpacity>
+                            </View>
+                            <View style={{ backgroundColor: "rgba(255, 255, 255, .5)", marginTop: "auto", marginBottom: 15, borderRadius: 20, width: 65, height: 40, justifyContent: "center", alignItems: "center" }}>
+                                <Text style={{ color: "grey" }}>{calculateDuration()} h</Text>
                             </View>
                             <View style={{ flex: 1 }}>
                                 <View style={{ flexDirection: "row", alignItems: "center", gap: 5, justifyContent: "center" }}>
                                     <Ionicons name='power' style={{ fontSize: 20, color: "orange" }} />
                                     <Text style={{ fontSize: 20, }}>Ausschalten</Text>
                                 </View>
-                                <TouchableOpacity activeOpacity={.4} style={{ alignSelf: "center", flexDirection: "row", backgroundColor: "white", borderRadius: 10, padding: 5, marginTop: 5 }}>
-                                    <Text style={{ fontSize: 25 }}>{moment().format("HH:mm")}</Text>
+                                <TouchableOpacity activeOpacity={.4} onPress={() => { setTimeBeingSet("end"); setPickerVisible(true) }}
+                                    style={editorModalStyles.timeBox}>
+                                    <Text style={{ fontSize: 25, textAlign: "center", color: theme.colors.primary }}>
+                                        {eventToEdit?.endMoment && eventToEdit.endMoment.clone().format("HH:mm") || "--:--"}
+                                    </Text>
+                                    <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "center" }}>
+                                        {(eventToEdit?.startMoment && eventToEdit.endMoment) ? endTimeisSmaller(eventToEdit.startMoment, eventToEdit.endMoment) &&
+                                            <MaterialCommunityIcons name='arrow-right' size={16} color={theme.colors.primary} /> : <></>}
+                                        <Text style={editorModalStyles.weekDay}>
+                                            {eventToEdit?.endMoment && eventToEdit.endMoment.format("dddd") || weekDayDateMoment.format("dddd")}
+                                        </Text>
+                                    </View>
                                 </TouchableOpacity>
                             </View>
                         </View>
+                        }
                         <View>
                             <View style={{ flexDirection: "row", alignItems: "center" }}>
                                 <Text style={{ fontSize: 15 }}>Wöchentlich</Text>
-                                <Switch value={true} color={theme.colors.primary} style={{ width: "auto" }} />
+                                <Switch value={eventIsWeekly} color={theme.colors.primary} style={{ width: "auto" }} onValueChange={(v) => {
+                                    setEventIsWeekly(v)
+                                    console.log(v)
+                                }} />
                             </View>
                             <View>
                                 <Text></Text>
@@ -176,16 +279,15 @@ const ScheduleEditor = ({ navigation, route }: ScheduleStackScreenProps<"Schedul
                     </View>
                 </BottomSheetModal>
             </BottomSheetModalProvider>
-            {/* {
-                Platform.OS === 'android' && <DateTimePicker
-                    value={events[eventToEdit] && events[eventToEdit].startMoment.clone().toDate() || moment().toDate()}
-                    display='clock'
+            {
+                Platform.OS === 'android' && isPickerVisible && <DateTimePicker
+                    value={datepickerStartTime()}
                     mode='time'
-
-                // onChange={pickerOnChange}
-                // style={styles.picker}
+                    is24Hour
+                    onChange={pickerOnChange}
                 />
-            } */}
+
+            }
         </View >
     )
 }
@@ -250,3 +352,18 @@ const styles = StyleSheet.create({
         height: '100%',
     },
 });
+
+const editorModalStyles = StyleSheet.create({
+    timeBox: {
+        alignSelf: "center",
+        backgroundColor: "white",
+        borderRadius: 10,
+        padding: 8,
+        marginTop: 8
+    },
+    weekDay: {
+        textAlign: "center",
+        fontSize: 14,
+        color: "grey"
+    }
+})

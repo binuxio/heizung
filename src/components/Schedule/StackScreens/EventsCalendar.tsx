@@ -39,7 +39,7 @@ const EventsCalendar = ({ navigation, route }: ScheduleStackScreenProps<"EventsC
 
     return (
         <View>
-            <StatusBar translucent={false} backgroundColor={theme.colors.background} />
+            <StatusBar translucent={false} backgroundColor={theme.colors.background} animated />
             <WeeklyCalendar
                 themeColor={theme.colors.primary}
                 renderEvent={(event, prevEvent, weekDayDate, k) => <EventDayView event={event} prevEvent={prevEvent} weekDayDateMoment={weekDayDate} key={k} />}
