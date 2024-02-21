@@ -1,5 +1,8 @@
-import React, { memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator, ScrollView, Platform, Alert, TouchableHighlight, Touchable, Animated, Dimensions } from 'react-native';
+import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import {
+    View, Text, TouchableOpacity, StyleSheet, ActivityIndicator, ScrollView,
+    Platform, Alert, TouchableHighlight, Animated, Dimensions
+} from 'react-native';
 import moment from 'moment';
 import { AntDesign, Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import theme from '../../../theme';
@@ -8,19 +11,16 @@ import getEventsFromMap from '../utils/getEventsFromMap';
 import { EventDetails, _Event } from '../../types';
 // import { StatusBar } from 'expo-status-bar';
 import "moment/locale/de"
-import { BottomSheetBackdrop, BottomSheetBackdropProps, BottomSheetModal, BottomSheetModalProvider } from '@gorhom/bottom-sheet';
+import { BottomSheetModal, BottomSheetModalProvider } from '@gorhom/bottom-sheet';
 import { DateTimePickerEvent } from '@react-native-community/datetimepicker';
 import { ScheduleStackScreenProps } from './types';
 import { Switch } from 'react-native-paper';
 import crossesDays from '../utils/crossesDays';
 import DateTimePicker from '@react-native-community/datetimepicker';
-import endTimeisSmaller from '../utils/timeIsSameOrBefore';
 import { StatusBar } from 'expo-status-bar';
-import AlertAsync from "react-native-alert-async";
-import isSameOrBefore from '../utils/timeIsSameOrBefore';
-import { Button, ListItem } from '@rneui/base';
+import { ListItem } from '@rneui/base';
 
-const oldEvents = []
+let eventsCopy: _Event[] = []
 const newEvents = []
 let eventsTimeConflicts = false
 type EventToEdit = { startMoment: moment.Moment | undefined, endMoment: moment.Moment | undefined, isWeekly: boolean }
@@ -87,12 +87,16 @@ const ScheduleEditor = ({ navigation, route }: ScheduleStackScreenProps<"Schedul
     }, [changesMade, navigation]);
 
     const finalSave = () => {
+        if (eventsTimeConflicts) {
+
+        }
 
     }
 
     useLayoutEffect(() => {
         setTimeout(() => {
             const _events = getEventsFromMap(weekDayDateMoment)
+            eventsCopy = _events
             const ev = _events.map(ev => getEventDetails(ev, weekDayDateMoment)!).sort((a, b) => {
                 const timeA = parseInt(a.startMoment.format("HH:mm").replace(":", ""));
                 const timeB = parseInt(b.startMoment.format("HH:mm").replace(":", ""));
@@ -140,20 +144,34 @@ const ScheduleEditor = ({ navigation, route }: ScheduleStackScreenProps<"Schedul
     }
 
     const saveEventChanges = () => {
-        if (eventToEdit.startMoment !== undefined && eventToEdit.endMoment !== undefined) {
-            const newEvents = [...events]
-            //@ts-ignore
-            newEvents.push(eventToEdit)
-            newEvents.sort((a, b) => {
-                const timeA = parseInt(a.startMoment.format("HH:mm").replace(":", ""));
-                const timeB = parseInt(b.startMoment.format("HH:mm").replace(":", ""));
-                return timeA - timeB;
-            });
-            setEvents(newEvents)
-            closeBottomSheet()
-            setChangesMade(true)
+        if (eventToEdit.startMoment === undefined || eventToEdit.endMoment === undefined)
+            return
+
+        const updatedEvent = {
+            startMoment: eventToEdit.startMoment,
+            endMoment: eventToEdit.endMoment,
+            isWeekly: eventToEdit.isWeekly,
+        };
+
+        const newEvents = [...events];
+
+        if (eventToEditIndex !== undefined) {
+            newEvents[eventToEditIndex] = updatedEvent;
+        } else {
+            newEvents.push(updatedEvent);
         }
-    }
+
+        newEvents.sort((a, b) => {
+            const timeA = parseInt(a.startMoment.format("HH:mm").replace(":", ""));
+            const timeB = parseInt(b.startMoment.format("HH:mm").replace(":", ""));
+            return timeA - timeB;
+        });
+
+        setEvents(newEvents);
+        closeBottomSheet();
+        setChangesMade(true);
+    };
+
 
     const discardEventChanges = async () => {
         if (eventToEditIndex !== undefined) {
@@ -185,6 +203,7 @@ const ScheduleEditor = ({ navigation, route }: ScheduleStackScreenProps<"Schedul
     };
 
     const deleteEvent = (index: number) => {
+        if (index == eventToEditIndex) setEventToEditIndex(undefined)
         const updatedEvents = [...events];
         updatedEvents.splice(index, 1);
         setEvents(updatedEvents);
@@ -312,10 +331,11 @@ const ScheduleEditor = ({ navigation, route }: ScheduleStackScreenProps<"Schedul
                         <View>
                             {events && events.map((event, i) => {
                                 const { startMoment, endMoment, isWeekly } = event
-
+                                if (i == 0) eventsTimeConflicts = false
                                 let prevEndTimeConflicting = false
                                 const prevEvent = events[i - 1]
-                                if (prevEvent) prevEndTimeConflicting = prevEvent.endMoment >= prevEvent.startMoment
+                                if (prevEvent) prevEndTimeConflicting = prevEvent.endMoment.isSameOrAfter(event.startMoment)
+                                eventsTimeConflicts = prevEndTimeConflicting
                                 return <Animated.View key={i} style={{
                                     overflow: "hidden", borderRadius: 7,
                                     marginBottom: animateDeletion.interpolate({ inputRange: [0, 1], outputRange: [eventToDeleteIndex === i ? 0 : 10, 10] }),

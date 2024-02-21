@@ -14,9 +14,8 @@ const EventDayView: React.FC<{ event: _Event, prevEvent: _Event | undefined, wee
     const crossesDay = startMoment.format('YYYY-MM-DD') !== endMoment.format('YYYY-MM-DD')
     let prevEndTimeConflicting = false
     if (prevEvent) {
-        const prevEventDurationMoment = moment.duration(prevEvent.duration)
-        const prevEventEndTimeMoment = getStartTimeMoment(weekDayDateMoment, prevEvent.start.time).clone().add(prevEventDurationMoment)
-        prevEndTimeConflicting = prevEventEndTimeMoment >= startMoment
+        const prevEndMoment = getEventDetails(prevEvent, weekDayDateMoment)!.endMoment
+        prevEndTimeConflicting = prevEndMoment.isSameOrAfter(startMoment)
     }
     return <View style={{}}>
         <View style={[styles.eventContainer]}>

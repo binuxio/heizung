@@ -5,15 +5,10 @@ import Ionicons from 'react-native-vector-icons/Ionicons';
 import { StyleSheet, Text, View } from 'react-native';
 import ScheduleScreen from './TabScreens/ScheduleScreen';
 import theme from './theme';
-import { createStackNavigator } from '@react-navigation/stack';
 import { RootStackParamList } from './TabScreens/types';
-import { ScheduleStackParamList } from './components/Schedule/StackScreens/types';
-import EventsCalendar from './components/Schedule/StackScreens/EventsCalendar';
-import ScheduleEditor from './components/Schedule/StackScreens/ScheduleEditor';
 import { useAppSelector } from '../redux/hooks';
 
 const Tab = createBottomTabNavigator<RootStackParamList>();
-
 
 const Main: React.FC = () => {
   const scheduleEditorOpen = useAppSelector(state => state.appState.scheduleEditorStackScreenOpen)
