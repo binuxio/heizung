@@ -39,7 +39,7 @@ const ScheduleEditor = ({ navigation, route }: ScheduleStackScreenProps<"Schedul
     const bottomSheetModalRef = useRef<BottomSheetModal>(null);
 
     useEffect(() => {
-        const onPageLeave = (ev) => {
+        const onPageLeave = (ev: any) => {
             if (changesMade) {
                 ev.preventDefault();
 
@@ -90,7 +90,6 @@ const ScheduleEditor = ({ navigation, route }: ScheduleStackScreenProps<"Schedul
         if (eventsTimeConflicts) {
 
         }
-
     }
 
     useLayoutEffect(() => {

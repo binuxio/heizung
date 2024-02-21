@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
-import { View, TouchableOpacity, Text, StyleSheet, ScrollView, StatusBar, Platform } from 'react-native';
+import { View, TouchableOpacity, Text, StyleSheet, ScrollView, StatusBar, Platform, Alert } from 'react-native';
 import StatusTable from '../components/StatusTable';
 import theme from '../theme';
 import { StackScreenProps } from '@react-navigation/stack';
 import { RootStackScreenProps } from './types';
+import AlertRNPaper from '../components/Schedule/UI/AlertRNPaper';
 
 export default function HomeScreen({ navigation, route }: RootStackScreenProps<"HomeScreen">) {
 
@@ -15,20 +16,21 @@ export default function HomeScreen({ navigation, route }: RootStackScreenProps<"
                 <Text>Heizung jetzt Einschalten</Text>
             </View>
         </View>
+        <AlertRNPaper title='Test'
+            actions={[{
+                text: "OK", onPress() {
+                    console.log("hi")
+                },
+                buttonStyle: { color: "red", backgroundColor: "green" }
+            },
+            {
+                text: "OK", onPress() {
+                    console.log("hi")
+                },
+                buttonStyle: { color: "red", backgroundColor: "green" }
+            }]} />
     </ScrollView>
-    {/* <View style={{ backgroundColor: "red", height: 50, alignItems: "center" }}>
-            <TouchableOpacity style={{ flex: 1 }}>
-                {navigation.isFocused() ?
-                    <Ionicons name={"home-sharp"} size={25} color={theme.colors.primary} />
-                    : <Ionicons name={"home-sharp"} size={25} />}
-            </TouchableOpacity>
-            <View style={{ flex: 1 }}>
-                {navigation.isFocused() ?
-                    <Ionicons name={"calendar"} size={25} color={theme.colors.primary} />
-                    : <Ionicons name={"calendar"} size={25} />}
-            </View>
-        </View> */}
-    {/* </View > */ }
+
 }
 
 const styles = StyleSheet.create({
