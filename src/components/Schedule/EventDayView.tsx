@@ -9,6 +9,8 @@ import { _Event } from '../types'
 import theme from '../../theme'
 import getEventDetails from './utils/getEventDetails'
 
+// structure2
+
 const EventDayView: React.FC<{ event: _Event, prevEvent: _Event | undefined, weekDayDateMoment: moment.Moment }> = ({ event, prevEvent, weekDayDateMoment }) => {
     const { startMoment, endMoment, isWeekly } = getEventDetails(event, weekDayDateMoment)!
     const crossesDay = startMoment.format('YYYY-MM-DD') !== endMoment.format('YYYY-MM-DD')
