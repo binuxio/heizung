@@ -1,21 +1,28 @@
 export type Schedule = _Event[]
 
 export type WeeklyEvent = {
-    type?: "weekly",
+    isWeekly: boolean
     start: {
         day: number;
         time: string;
     };
-    duration: string;
+    end: {
+        date: number;
+        time: string;
+    }
     excludedDays?: string[];
 };
 
 export type SpecialEvent = {
-    type?: "special",
+    isWeekly: boolean
     start: {
         date: string;
         time: string;
     };
+    end: {
+        date: number;
+        time: string;
+    }
     duration: string;
 };
 
