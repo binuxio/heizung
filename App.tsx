@@ -7,15 +7,18 @@ import { NavigationContainer } from '@react-navigation/native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { Provider as ReduxProvider } from 'react-redux';
 import { store } from './redux/store';
+import { AlertPaperProvider } from './src/components/Schedule/UI/AlertPaperProvider';
 
 export default function App() {
   return (
     <ReduxProvider store={store}>
-      <GestureHandlerRootView style={{flex: 1}}>
+      <GestureHandlerRootView style={{ flex: 1 }}>
         <PaperProvider>
-          <NavigationContainer>
-            <Main />
-          </NavigationContainer>
+          <AlertPaperProvider >
+            <NavigationContainer>
+              <Main />
+            </NavigationContainer>
+          </AlertPaperProvider>
         </PaperProvider>
       </GestureHandlerRootView>
     </ReduxProvider>

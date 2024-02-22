@@ -4,7 +4,6 @@ import StatusTable from '../components/StatusTable';
 import theme from '../theme';
 import { StackScreenProps } from '@react-navigation/stack';
 import { RootStackScreenProps } from './types';
-import AlertRNPaper from '../components/Schedule/UI/AlertRNPaper';
 
 export default function HomeScreen({ navigation, route }: RootStackScreenProps<"HomeScreen">) {
 
@@ -16,19 +15,6 @@ export default function HomeScreen({ navigation, route }: RootStackScreenProps<"
                 <Text>Heizung jetzt Einschalten</Text>
             </View>
         </View>
-        <AlertRNPaper title='Test'
-            actions={[{
-                text: "OK", onPress() {
-                    console.log("hi")
-                },
-                buttonStyle: { color: "red", backgroundColor: "green" }
-            },
-            {
-                text: "OK", onPress() {
-                    console.log("hi")
-                },
-                buttonStyle: { color: "red", backgroundColor: "green" }
-            }]} />
     </ScrollView>
 
 }

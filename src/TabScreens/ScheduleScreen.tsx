@@ -23,7 +23,7 @@ export default function ScheduleScreen({ navigation }: RootStackScreenProps<"Sch
                 }} />
             <Stack.Screen component={ScheduleEditor} name="ScheduleEditor"
                 listeners={{
-                    beforeRemove: ({ }) => {
+                    transitionStart: () => {
                         dispatch(setScheduleStackScreenOpen(false))
                     },
                     focus: () => {

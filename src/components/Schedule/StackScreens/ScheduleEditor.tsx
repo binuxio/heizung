@@ -19,6 +19,7 @@ import crossesDays from '../utils/crossesDays';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { StatusBar } from 'expo-status-bar';
 import { ListItem } from '@rneui/base';
+import { useAlert } from '../UI/AlertPaperProvider';
 
 let eventsCopy: _Event[] = []
 const newEvents = []
@@ -37,29 +38,25 @@ const ScheduleEditor = ({ navigation, route }: ScheduleStackScreenProps<"Schedul
     const [isPickerVisible, setPickerVisible] = useState(false)
     const [changesMade, setChangesMade] = useState(false)
     const bottomSheetModalRef = useRef<BottomSheetModal>(null);
+    const { showAlert } = useAlert()
 
     useEffect(() => {
         const onPageLeave = (ev: any) => {
             if (changesMade) {
                 ev.preventDefault();
-
-                Alert.alert(
-                    'Änderungen verwerfen?',
-                    undefined,
-                    [
-                        {
-                            text: 'Bleiben',
+                showAlert({
+                    title: 'Änderungen verwerfen?',
+                    actions: [{
+                        text: "Abbrechen",
+                        buttonStyle: { color: theme.colors.primary },
+                    },
+                    {
+                        text: "Verwerfen",
+                        onPress() {
+                            navigation.dispatch(ev.data.action);
                         },
-                        {
-                            text: 'Verwerfen',
-                            onPress: () => {
-                                setChangesMade(false);
-                                navigation.dispatch(ev.data.action);
-                            },
-                        },
-                    ],
-                    { cancelable: false }
-                );
+                    }]
+                })
             }
         };
 
@@ -110,7 +107,7 @@ const ScheduleEditor = ({ navigation, route }: ScheduleStackScreenProps<"Schedul
                 return <TouchableOpacity
                     activeOpacity={.4} onPress={() => navigation.goBack()} style={{ marginLeft: 10, flexDirection: "row", alignItems: "center" }}>
                     <Ionicons name='chevron-back' size={20} color={theme.colors.primary} />
-                    <Text style={{ fontSize: 14, color: theme.colors.primary, fontWeight: "600" }}>Abbrechen</Text>
+                    <Text style={{ fontSize: 14, color: theme.colors.primary, fontWeight: "600" }}>Zurück</Text>
                 </TouchableOpacity>
             },
             headerTitle(props) {
@@ -206,7 +203,6 @@ const ScheduleEditor = ({ navigation, route }: ScheduleStackScreenProps<"Schedul
         const updatedEvents = [...events];
         updatedEvents.splice(index, 1);
         setEvents(updatedEvents);
-        setChangesMade(true)
     }
 
     const openBottomSheet = () => {
@@ -305,6 +301,7 @@ const ScheduleEditor = ({ navigation, route }: ScheduleStackScreenProps<"Schedul
 
     const animateDeletion = useRef(new Animated.Value(1)).current;
     const animateDelete = () => {
+        setChangesMade(true)
         Animated.timing(animateDeletion, {
             toValue: 0,
             duration: 300,

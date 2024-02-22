@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { memo } from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import HomeScreen from './TabScreens/HomeScreen';
 import Ionicons from 'react-native-vector-icons/Ionicons';
@@ -12,7 +12,6 @@ const Tab = createBottomTabNavigator<RootStackParamList>();
 
 const Main: React.FC = () => {
   const scheduleEditorOpen = useAppSelector(state => state.appState.scheduleEditorStackScreenOpen)
-
 
   return (
     <Tab.Navigator initialRouteName='SchedueScreen' screenOptions={{
