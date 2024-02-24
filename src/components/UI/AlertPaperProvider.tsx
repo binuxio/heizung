@@ -1,8 +1,8 @@
 import * as React from 'react';
-import { TouchableOpacity, ViewStyle } from 'react-native';
+import { TouchableOpacity, View, ViewStyle } from 'react-native';
 import { Dialog, Portal, Text } from 'react-native-paper';
 import { TextStyle } from 'react-native';
-import theme from '../../../theme';
+import theme from '../../theme';
 
 interface DialogButtonAction {
     text: string;
@@ -60,21 +60,27 @@ const AlertPaperProvider: React.FC<{ children: React.ReactNode }> = ({ children 
                     action.onPress && action.onPress();
                     setIsVisible(false)
                 }} key={i}>
-                    <Text style={action.buttonStyle}>{action.text}</Text>
+                    <Text style={[{
+                        color: theme.colors.primary,
+                        backgroundColor: theme.colors.eventBackground,
+                        fontSize: 13,
+                        borderRadius: 5,
+                        paddingVertical: 5, paddingHorizontal: 10,
+                    }, action.buttonStyle]}>{action.text}</Text>
                 </TouchableOpacity>
             ))}
         </Dialog.Actions>
     );
 
     const AlertComponent = () => {
-
+        console.log(alertConfig.dialogStyle)
         return (
             <Portal>
                 <Dialog dismissable={alertConfig.dismissable || initialConf.dismissable}
                     onDismiss={() => setIsVisible(false)}
                     style={[initialConf.dialogStyle, alertConfig.dialogStyle]}
-                    visible={isVisible} >
-                    <Dialog.Title style={alertConfig?.titleStyle}>{alertConfig?.title}</Dialog.Title>
+                    visible={isVisible}>
+                    <Dialog.Title style={[{ fontSize: 20 }, alertConfig?.titleStyle]}>{alertConfig?.title}</Dialog.Title>
                     {alertConfig.message && (
                         <Dialog.Content>
                             <Text style={alertConfig.messageStyle}>{alertConfig.message}</Text>
@@ -94,7 +100,7 @@ const AlertPaperProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     );
 };
 
-const useAlert = ({ title, titleStyle, actions, buttonsStyle, message, messageStyle, dismissable, dialogStyle }: AlertConfig = initialConf) => {
+const useAlert = ({ title, titleStyle, actions, buttonsStyle, message, messageStyle, dismissable, dialogStyle }: AlertConfig = {}) => {
     const context = React.useContext(AlertPaperContext);
 
     React.useEffect(() => {

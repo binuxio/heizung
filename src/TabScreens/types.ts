@@ -5,7 +5,7 @@ import moment from 'moment';
 export type RootStackParamList = {
     HomeScreen: undefined
     SchedueScreen: undefined
-    tabbarNavigation: ...
+    tabbarNavigation: undefined
 }
 
 export type RootStackScreenProps<Screen extends keyof RootStackParamList> = NativeStackScreenProps<RootStackParamList, Screen>;

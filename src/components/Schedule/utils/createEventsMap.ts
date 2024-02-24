@@ -3,7 +3,6 @@ import { Schedule, _Event } from "../../types"
 export const eventsMap = new Map<number | string, _Event[]>()
 
 export default function (schedule: Schedule = []) {
-    eventsMap.clear()
     schedule.forEach(event => {
         //@ts-ignore
         const day = event.start.day

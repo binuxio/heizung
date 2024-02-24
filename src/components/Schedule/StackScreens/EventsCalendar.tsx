@@ -2,13 +2,13 @@ import React, { useEffect, useState } from 'react'
 import { Alert, SafeAreaView, StyleSheet, Text, View } from 'react-native'
 import WeeklyCalendar from '../../../utils/weekly-calendar'
 import { Schedule } from '../../types'
-import EventDayView from '../EventDayView'
+import EventDayView from '../../../utils/weekly-calendar/EventDayView'
 import theme from '../../../theme'
 import { RootState } from '../../../../redux/store'
 import { useAppDispatch, useAppSelector } from '../../../../redux/hooks'
 import { StatusBar, setStatusBarStyle, setStatusBarTranslucent } from 'expo-status-bar'
 import { triggerCalenderRerender } from '../../../../redux/slice'
-import syncSchedule from '../utils/syncSchedule'
+import fetchSchedule from '../utils/api/fetchSchedule'
 import { ScheduleStackScreenProps } from './types'
 
 function fetchEvents() {
@@ -20,7 +20,7 @@ const EventsCalendar = ({ navigation, route }: ScheduleStackScreenProps<"EventsC
 
     useEffect(() => {
         (async () => {
-            const res = await syncSchedule()
+            const res = await fetchSchedule()
             if (!res || typeof res.status !== 'number') {
                 Alert.alert("Fehler", "Ungültige Antwort vom Server");
             } else if (res.status !== 200) {

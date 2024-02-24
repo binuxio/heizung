@@ -6,9 +6,9 @@ import {
 import moment from 'moment';
 import { AntDesign, Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import theme from '../../../theme';
-import getEventDetails from '../utils/getEventDetails';
+import getEventDetails from '../utils/getEventMoments';
 import getEventsFromMap from '../utils/getEventsFromMap';
-import { EventDetails, _Event } from '../../types';
+import { EventMoments, _Event } from '../../types';
 // import { StatusBar } from 'expo-status-bar';
 import "moment/locale/de"
 import { BottomSheetModal, BottomSheetModalProvider } from '@gorhom/bottom-sheet';
@@ -19,24 +19,28 @@ import crossesDays from '../utils/crossesDays';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { StatusBar } from 'expo-status-bar';
 import { ListItem } from '@rneui/base';
-import { useAlert } from '../UI/AlertPaperProvider';
+import { useAlert } from '../../UI/AlertPaperProvider';
+import updateSchedule from '../utils/api/updateSchedule';
+import { useDialog } from '../../UI/PaperDialogProvider';
 
-let eventsCopy: _Event[] = []
-const newEvents = []
+let removedEvents_id: string[] = []
+let newEvents_id: string[] = []
+let thisevents: EventMoments[] = []
 let eventsTimeConflicts = false
-type EventToEdit = { startMoment: moment.Moment | undefined, endMoment: moment.Moment | undefined, isWeekly: boolean }
+type EventToEdit = { startMoment: moment.Moment | undefined, endMoment: moment.Moment | undefined, isWeekly: boolean, _id: string | undefined }
 const ScheduleEditor = ({ navigation, route }: ScheduleStackScreenProps<"ScheduleEditor">) => {
     const { weekDayDate } = route.params
     const weekDayDateMoment = moment(weekDayDate)
     const [loading, setLoading] = useState(true)
-    const [events, setEvents] = useState<EventDetails[]>([])
-    const [eventToEdit, setEventToEdit] = useState<EventToEdit>({ startMoment: undefined, endMoment: undefined, isWeekly: true })
+    const [events, setEvents] = useState<EventMoments[]>([])
+    const [eventToEdit, setEventToEdit] = useState<EventToEdit>({ startMoment: undefined, endMoment: undefined, isWeekly: true, _id: undefined })
     const [eventToEditIndex, setEventToEditIndex] = useState<undefined | number>(undefined)
     const [eventToDeleteIndex, setEventToDeleteIndex] = useState<undefined | number>(undefined)
     const [eventIsWeekly, setEventIsWeekly] = useState(true)
     const [timeBeingSet, setTimeBeingSet] = useState<"start" | "end" | undefined>(undefined)
     const [isPickerVisible, setPickerVisible] = useState(false)
     const [changesMade, setChangesMade] = useState(false)
+    const [isSaving, setIsSaving] = useState(false)
     const bottomSheetModalRef = useRef<BottomSheetModal>(null);
     const { showAlert } = useAlert()
 
@@ -46,16 +50,18 @@ const ScheduleEditor = ({ navigation, route }: ScheduleStackScreenProps<"Schedul
                 ev.preventDefault();
                 showAlert({
                     title: 'Änderungen verwerfen?',
-                    actions: [{
-                        text: "Abbrechen",
-                        buttonStyle: { color: theme.colors.primary },
-                    },
-                    {
-                        text: "Verwerfen",
-                        onPress() {
-                            navigation.dispatch(ev.data.action);
+                    actions: [
+                        {
+                            text: "Verwerfen",
+                            buttonStyle: { fontSize: 13, textDecorationLine: "underline" },
+                            onPress() {
+                                navigation.dispatch(ev.data.action);
+                            },
                         },
-                    }]
+                        {
+                            text: "Abbrechen"
+                        }
+                    ]
                 })
             }
         };
@@ -83,16 +89,32 @@ const ScheduleEditor = ({ navigation, route }: ScheduleStackScreenProps<"Schedul
         };
     }, [changesMade, navigation]);
 
-    const finalSave = () => {
-        if (eventsTimeConflicts) {
+    useEffect(() => {
+        console.log("events changing")
+        thisevents = [...events]
+    }, [events])
 
+    const finalSave = async () => {
+        if (eventsTimeConflicts) {
+            showAlert({
+                title: "Bitte überprüfe den Plan",
+                actions: [{ text: "OK" }]
+            })
+            return
         }
+        setIsSaving(true)
+
+        const newEvents = thisevents.filter(event => newEvents_id.includes(event._id!))
+        const res = await updateSchedule(removedEvents_id, newEvents, weekDayDate!)
+        setChangesMade(false)
+        setIsSaving(false)
+        // navigation.goBack()
     }
 
-    useLayoutEffect(() => {
+    useLayoutEffect(() => { // on mount
+        removedEvents = new Array()
         setTimeout(() => {
             const _events = getEventsFromMap(weekDayDateMoment)
-            eventsCopy = _events
             const ev = _events.map(ev => getEventDetails(ev, weekDayDateMoment)!).sort((a, b) => {
                 const timeA = parseInt(a.startMoment.format("HH:mm").replace(":", ""));
                 const timeB = parseInt(b.startMoment.format("HH:mm").replace(":", ""));
@@ -123,51 +145,58 @@ const ScheduleEditor = ({ navigation, route }: ScheduleStackScreenProps<"Schedul
         })
     }, [])
 
+    // console.log("rerender editor", new Date().getTime())
     const editEvent = (index: number) => {
-        const ev = events[index]
+        const ev = { ...events[index] }
         setEventToEdit(ev)
         setEventToEditIndex(index)
-        setEventIsWeekly(ev.isWeekly)
+        setEventIsWeekly(ev.isWeekly || false)
         openBottomSheet()
     }
 
     const createEvent = () => {
-        const newEvent = { startMoment: undefined, endMoment: undefined, isWeekly: true }
+        const newEvent = { startMoment: undefined, endMoment: undefined, isWeekly: true, _id: new Date().getTime().toString() }
         setEventToEditIndex(undefined)
         setEventToEdit(newEvent)
         setEventIsWeekly(true)
         openBottomSheet()
     }
 
-    const saveEventChanges = () => {
+    const saveNewEvent = () => {
         if (eventToEdit.startMoment === undefined || eventToEdit.endMoment === undefined)
             return
 
-        const updatedEvent = {
+        if (eventToEditIndex !== undefined) { // if the currently saving event is not new but modified, add to deletions list and give it a new id
+            removedEvents_id.push(events[eventToEditIndex]._id!)
+        }
+
+        const newEvent = {
             startMoment: eventToEdit.startMoment,
             endMoment: eventToEdit.endMoment,
             isWeekly: eventToEdit.isWeekly,
+            _id: eventToEdit._id
         };
 
-        const newEvents = [...events];
+        newEvents_id.push(newEvent._id!)
+
+        const updatedEvents = [...events];
 
         if (eventToEditIndex !== undefined) {
-            newEvents[eventToEditIndex] = updatedEvent;
+            updatedEvents[eventToEditIndex] = newEvent;
         } else {
-            newEvents.push(updatedEvent);
+            updatedEvents.push(newEvent);
         }
 
-        newEvents.sort((a, b) => {
+        updatedEvents.sort((a, b) => {
             const timeA = parseInt(a.startMoment.format("HH:mm").replace(":", ""));
             const timeB = parseInt(b.startMoment.format("HH:mm").replace(":", ""));
             return timeA - timeB;
         });
 
-        setEvents(newEvents);
-        closeBottomSheet();
+        setEvents(updatedEvents);
         setChangesMade(true);
+        closeBottomSheet();
     };
-
 
     const discardEventChanges = async () => {
         if (eventToEditIndex !== undefined) {
@@ -199,10 +228,19 @@ const ScheduleEditor = ({ navigation, route }: ScheduleStackScreenProps<"Schedul
     };
 
     const deleteEvent = (index: number) => {
-        if (index == eventToEditIndex) setEventToEditIndex(undefined)
-        const updatedEvents = [...events];
-        updatedEvents.splice(index, 1);
+        if (events[index]) { // check if eventToDeletedIndex still exists. Because user can delete the currently editing event
+            removedEvents_id.push(events[index]._id!) // add to deletion list
+            const id = events[index]._id
+            newEvents_id = newEvents_id.filter(event_id => event_id != id) // remove from newEvents list if this event was created before
+        }
+
+        const updatedEvents = [...events].splice(index, 1); // remove event from list
         setEvents(updatedEvents);
+
+        if (index == eventToEditIndex) { // check if selected event being deleted while editing
+            // setEventToEditIndex(undefined) // remove the eventToEdit from the current index to create a new event
+            createEvent() // set currently editing event to null
+        }
     }
 
     const openBottomSheet = () => {
@@ -220,7 +258,7 @@ const ScheduleEditor = ({ navigation, route }: ScheduleStackScreenProps<"Schedul
                 <Text style={{ color: "grey" }}>Abbrechen</Text>
             </TouchableOpacity>
             <View style={bStyles.handle}></View>
-            <TouchableOpacity activeOpacity={.7} style={{ backgroundColor: theme.colors.eventBackground, paddingHorizontal: 7, paddingVertical: 3, borderRadius: 7, marginLeft: "auto" }} onPress={saveEventChanges}>
+            <TouchableOpacity activeOpacity={.7} style={{ backgroundColor: theme.colors.eventBackground, paddingHorizontal: 7, paddingVertical: 3, borderRadius: 7, marginLeft: "auto" }} onPress={saveNewEvent}>
                 <Text style={{ color: theme.colors.primary }}>Fertig</Text>
             </TouchableOpacity>
         </View>
@@ -319,149 +357,153 @@ const ScheduleEditor = ({ navigation, route }: ScheduleStackScreenProps<"Schedul
     }, [eventToDeleteIndex]);
 
     return (
-        <View>
-            <StatusBar translucent animated />
-            {!loading &&
-                <ScrollView style={styles.screenContainer}>
-                    <View style={{ padding: 10 }}>
-                        <View>
-                            {events && events.map((event, i) => {
-                                const { startMoment, endMoment, isWeekly } = event
-                                if (i == 0) eventsTimeConflicts = false
-                                let prevEndTimeConflicting = false
-                                const prevEvent = events[i - 1]
-                                if (prevEvent) prevEndTimeConflicting = prevEvent.endMoment.isSameOrAfter(event.startMoment)
-                                eventsTimeConflicts = prevEndTimeConflicting
-                                return <Animated.View key={i} style={{
-                                    overflow: "hidden", borderRadius: 7,
-                                    marginBottom: animateDeletion.interpolate({ inputRange: [0, 1], outputRange: [eventToDeleteIndex === i ? 0 : 10, 10] }),
-                                    opacity: eventToDeleteIndex !== i ? 1 : 0,
-                                    height: animateDeletion.interpolate({ inputRange: [0, 1], outputRange: [eventToDeleteIndex === i ? 0 : 45, 45] })
-                                }}>
-                                    <ListItem.Swipeable
-                                        leftWidth={0}
-                                        rightStyle={{ height: "100%" }}
-                                        containerStyle={{ padding: 0, height: "100%", }}
-                                        rightWidth={100}
-                                        rightContent={(reset) => (
-                                            <View style={{ height: "100%", width: "100%", flexDirection: "row" }}>
-                                                <TouchableOpacity
-                                                    onPress={() => {
-                                                        reset();
-                                                        setEventToDeleteIndex(i)
-                                                    }}
-                                                    activeOpacity={.7}
-                                                    style={{ backgroundColor: "red", flex: 1, justifyContent: "center", alignItems: "center" }}
-                                                >
-                                                    <MaterialCommunityIcons name='delete' color={"white"} size={22} />
-                                                </TouchableOpacity>
-                                            </View>
-                                        )}
-                                    >
-                                        <TouchableHighlight underlayColor="rgba(141, 199, 217, .7)" onPress={() => editEvent(i)} style={{ flex: 1, backgroundColor: eventToEditIndex == i ? "rgb(141, 199, 217)" : theme.colors.eventBackground }}>
-                                            <View style={[styles.eventContainer]}>
-                                                <View style={styles.timeContainer}>
-                                                    <Ionicons name='power' style={[styles.powerIcon, { marginRight: 5, color: "green" }]} />
-                                                    <Text style={[styles.durationText, prevEndTimeConflicting ? { color: "red" } : {}]}>{startMoment.format("HH:mm")}</Text>
+        <>
+            <View>
+                <StatusBar translucent animated />
+                {!loading &&
+                    <ScrollView style={styles.screenContainer}>
+                        <View style={{ padding: 10 }}>
+                            <View>
+                                {events && events.map((event, i) => {
+                                    const { startMoment, endMoment, isWeekly } = event
+                                    if (i == 0) eventsTimeConflicts = false
+                                    let prevEndTimeConflicting = false
+                                    const prevEvent = events[i - 1]
+                                    if (prevEvent) prevEndTimeConflicting = prevEvent.endMoment.isSameOrAfter(event.startMoment)
+                                    eventsTimeConflicts = prevEndTimeConflicting
+                                    return <Animated.View key={i} style={{
+                                        overflow: "hidden", borderRadius: 7,
+                                        marginBottom: animateDeletion.interpolate({ inputRange: [0, 1], outputRange: [eventToDeleteIndex === i ? 0 : 10, 10] }),
+                                        opacity: eventToDeleteIndex !== i ? 1 : 0,
+                                        height: animateDeletion.interpolate({ inputRange: [0, 1], outputRange: [eventToDeleteIndex === i ? 0 : 45, 45] })
+                                    }}>
+                                        <ListItem.Swipeable
+                                            leftWidth={0}
+                                            rightStyle={{ height: "100%" }}
+                                            containerStyle={{ padding: 0, height: "100%", }}
+                                            rightWidth={100}
+                                            rightContent={(reset) => (
+                                                <View style={{ height: "100%", width: "100%", flexDirection: "row" }}>
+                                                    <TouchableOpacity
+                                                        onPress={() => {
+                                                            reset();
+                                                            setEventToDeleteIndex(i)
+                                                        }}
+                                                        activeOpacity={.7}
+                                                        style={{ backgroundColor: "red", flex: 1, justifyContent: "center", alignItems: "center" }}
+                                                    >
+                                                        <MaterialCommunityIcons name='delete' color={"white"} size={22} />
+                                                    </TouchableOpacity>
                                                 </View>
-                                                <View style={styles.timeContainer}>
-                                                    <Ionicons name='power' style={[styles.powerIcon, { marginRight: 5, color: "orange" }]} />
-                                                    <Text style={styles.durationText}>{!crossesDays(startMoment, endMoment) ? endMoment.format("HH:mm") : endMoment.format("HH:mm, dd")}</Text>
+                                            )}
+                                        >
+                                            <TouchableHighlight underlayColor="rgba(141, 199, 217, .7)" onPress={() => editEvent(i)} style={{ flex: 1, backgroundColor: eventToEditIndex == i ? "rgb(141, 199, 217)" : theme.colors.eventBackground }}>
+                                                <View style={[styles.eventContainer]}>
+                                                    <View style={styles.timeContainer}>
+                                                        <Ionicons name='power' style={[styles.powerIcon, { marginRight: 5, color: "green" }]} />
+                                                        <Text style={[styles.durationText, prevEndTimeConflicting ? { color: "red" } : {}]}>{startMoment.format("HH:mm")}</Text>
+                                                    </View>
+                                                    <View style={styles.timeContainer}>
+                                                        <Ionicons name='power' style={[styles.powerIcon, { marginRight: 5, color: "orange" }]} />
+                                                        <Text style={styles.durationText}>{!crossesDays(startMoment, endMoment) ? endMoment.format("HH:mm") : endMoment.format("HH:mm, dd")}</Text>
+                                                    </View>
+                                                    <View style={{ flex: 1, flexDirection: "row", justifyContent: "flex-end", alignItems: "center" }}>
+                                                        {!isWeekly && <MaterialCommunityIcons name='repeat-once' style={[{ fontSize: 30, color: "grey" }]} />}
+                                                        {prevEndTimeConflicting && <MaterialCommunityIcons name='exclamation' style={[{ fontSize: 20, color: "red" }]} />}
+                                                    </View>
                                                 </View>
-                                                <View style={{ flex: 1, flexDirection: "row", justifyContent: "flex-end", alignItems: "center" }}>
-                                                    {!isWeekly && <MaterialCommunityIcons name='repeat-once' style={[{ fontSize: 30, color: "grey" }]} />}
-                                                    {prevEndTimeConflicting && <MaterialCommunityIcons name='exclamation' style={[{ fontSize: 20, color: "red" }]} />}
-                                                </View>
-                                            </View>
-                                        </TouchableHighlight>
-                                    </ListItem.Swipeable>
-                                </Animated.View>
-                            })}
+                                            </TouchableHighlight>
+                                        </ListItem.Swipeable>
+                                    </Animated.View>
+                                })}
+                            </View>
+                            <TouchableHighlight underlayColor="rgb(141, 199, 217)" onPress={createEvent}
+                                style={{ backgroundColor: theme.colors.eventBackground, justifyContent: "center", alignItems: "center", height: 45, overflow: "hidden", borderRadius: 7, }}>
+                                <AntDesign name='pluscircleo' size={22} color={theme.colors.primary} />
+                            </TouchableHighlight>
                         </View>
-                        <TouchableHighlight underlayColor="rgb(141, 199, 217)" onPress={createEvent}
-                            style={{ backgroundColor: theme.colors.eventBackground, justifyContent: "center", alignItems: "center", height: 45, overflow: "hidden", borderRadius: 7, }}>
-                            <AntDesign name='pluscircleo' size={25} color={theme.colors.primary} />
-                        </TouchableHighlight>
-                    </View>
-                </ScrollView> || <ActivityIndicator size='large' color={theme.colors.primary} style={styles.indicator} />
-            }
-            <BottomSheetModalProvider>
-                <BottomSheetModal
-                    ref={bottomSheetModalRef}
-                    snapPoints={['40%', '80%']}
-                    enablePanDownToClose={false}
-                    handleComponent={() => <BottomSheetHandler />}
-                    style={{ borderTopLeftRadius: 15, borderTopRightRadius: 15, overflow: "hidden" }}
-                >
-                    <View style={bStyles.bottomSheetContent}>
-                        {<View style={{ flexDirection: "row" }}>
-                            <View style={{ flex: 1 }}>
-                                <View style={{ flexDirection: "row", alignItems: "center", gap: 5, justifyContent: "center" }}>
-                                    <Ionicons name='power' style={{ fontSize: 20, color: "green" }} />
-                                    <Text style={{ fontSize: 20, }}>Einschalten</Text>
-                                </View>
-                                <TouchableOpacity activeOpacity={.4} onPress={() => { setTimeBeingSet("start"); setPickerVisible(true) }}
-                                    style={editorModalStyles.timeBox}>
-                                    <Text style={{ fontSize: 25, textAlign: "center", color: theme.colors.primary }}>
-                                        {eventToEdit?.startMoment && eventToEdit.startMoment.clone().format("HH:mm") || "--:--"}
-                                    </Text>
-                                    <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "center" }}>
-                                        <Text style={editorModalStyles.weekDay}>
-                                            {weekDayDateMoment.format("dddd")}
-                                        </Text>
+                    </ScrollView> || <></>
+                    // <ActivityIndicator size='large' color={theme.colors.primary} style={styles.indicator} />
+                }
+                <BottomSheetModalProvider>
+                    <BottomSheetModal
+                        ref={bottomSheetModalRef}
+                        snapPoints={['40%', '80%']}
+                        enablePanDownToClose={false}
+                        handleComponent={() => <BottomSheetHandler />}
+                        style={{ borderTopLeftRadius: 15, borderTopRightRadius: 15, overflow: "hidden" }}
+                    >
+                        <View style={bStyles.bottomSheetContent}>
+                            {<View style={{ flexDirection: "row" }}>
+                                <View style={{ flex: 1 }}>
+                                    <View style={{ flexDirection: "row", alignItems: "center", gap: 5, justifyContent: "center" }}>
+                                        <Ionicons name='power' style={{ fontSize: 20, color: "green" }} />
+                                        <Text style={{ fontSize: 20, }}>Einschalten</Text>
                                     </View>
-                                </TouchableOpacity>
-                            </View>
-                            <View style={{ backgroundColor: "rgba(255, 255, 255, .5)", marginTop: "auto", marginBottom: 15, borderRadius: 20, width: 65, height: 40, justifyContent: "center", alignItems: "center" }}>
-                                <Text style={{ color: "grey" }}>{calculateDuration()} h</Text>
-                            </View>
-                            <View style={{ flex: 1 }}>
-                                <View style={{ flexDirection: "row", alignItems: "center", gap: 5, justifyContent: "center" }}>
-                                    <Ionicons name='power' style={{ fontSize: 20, color: "orange" }} />
-                                    <Text style={{ fontSize: 20, }}>Ausschalten</Text>
-                                </View>
-                                <TouchableOpacity activeOpacity={.4} onPress={() => { setTimeBeingSet("end"); setPickerVisible(true) }}
-                                    style={editorModalStyles.timeBox}>
-                                    <Text style={{ fontSize: 25, textAlign: "center", color: theme.colors.primary }}>
-                                        {eventToEdit?.endMoment && eventToEdit.endMoment.clone().format("HH:mm") || "--:--"}
-                                    </Text>
-                                    <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "center" }}>
-                                        {(eventToEdit?.startMoment && eventToEdit.endMoment)
-                                            ? eventToEdit.startMoment.clone().day() < eventToEdit.endMoment.clone().day()
-                                            && <MaterialCommunityIcons name='arrow-right' size={16} color={theme.colors.primary} /> : <></>}
-                                        <Text style={editorModalStyles.weekDay}>
-                                            {eventToEdit?.endMoment && eventToEdit.endMoment.format("dddd") || weekDayDateMoment.format("dddd")}
+                                    <TouchableOpacity activeOpacity={.4} onPress={() => { setTimeBeingSet("start"); setPickerVisible(true) }}
+                                        style={editorModalStyles.timeBox}>
+                                        <Text style={{ fontSize: 25, textAlign: "center", color: theme.colors.primary }}>
+                                            {eventToEdit?.startMoment && eventToEdit.startMoment.clone().format("HH:mm") || "--:--"}
                                         </Text>
+                                        <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "center" }}>
+                                            <Text style={editorModalStyles.weekDay}>
+                                                {weekDayDateMoment.format("dddd")}
+                                            </Text>
+                                        </View>
+                                    </TouchableOpacity>
+                                </View>
+                                <View style={{ backgroundColor: "rgba(255, 255, 255, .5)", marginTop: "auto", marginBottom: 15, borderRadius: 20, width: 65, height: 40, justifyContent: "center", alignItems: "center" }}>
+                                    <Text style={{ color: "grey" }}>{calculateDuration()} h</Text>
+                                </View>
+                                <View style={{ flex: 1 }}>
+                                    <View style={{ flexDirection: "row", alignItems: "center", gap: 5, justifyContent: "center" }}>
+                                        <Ionicons name='power' style={{ fontSize: 20, color: "orange" }} />
+                                        <Text style={{ fontSize: 20, }}>Ausschalten</Text>
                                     </View>
-                                </TouchableOpacity>
+                                    <TouchableOpacity activeOpacity={.4} onPress={() => { setTimeBeingSet("end"); setPickerVisible(true) }}
+                                        style={editorModalStyles.timeBox}>
+                                        <Text style={{ fontSize: 25, textAlign: "center", color: theme.colors.primary }}>
+                                            {eventToEdit?.endMoment && eventToEdit.endMoment.clone().format("HH:mm") || "--:--"}
+                                        </Text>
+                                        <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "center" }}>
+                                            {(eventToEdit?.startMoment && eventToEdit.endMoment)
+                                                ? eventToEdit.startMoment.clone().day() < eventToEdit.endMoment.clone().day()
+                                                && <MaterialCommunityIcons name='arrow-right' size={16} color={theme.colors.primary} /> : <></>}
+                                            <Text style={editorModalStyles.weekDay}>
+                                                {eventToEdit?.endMoment && eventToEdit.endMoment.format("dddd") || weekDayDateMoment.format("dddd")}
+                                            </Text>
+                                        </View>
+                                    </TouchableOpacity>
+                                </View>
+                            </View>
+                            }
+                            <View style={{ flexDirection: "row", marginTop: 20, marginLeft: 35 }}>
+                                <View style={{ flexDirection: "row", alignItems: "center", backgroundColor: "rgba(255, 255, 255, .5)", borderRadius: 10, paddingHorizontal: 10, height: 30 }}>
+                                    <Text style={{ fontSize: 12, color: "grey" }}>Wöchentlich</Text>
+                                    <Switch value={eventIsWeekly} color={theme.colors.primary} style={{ transform: [{ scaleX: .8 }, { scaleY: .8 }] }} onValueChange={(v) => {
+                                        setEventIsWeekly(v)
+                                        setEventToEdit({
+                                            ...eventToEdit,
+                                            isWeekly: v
+                                        });
+                                    }} />
+                                </View>
                             </View>
                         </View>
-                        }
-                        <View style={{ flexDirection: "row", marginTop: 20, marginLeft: 35 }}>
-                            <View style={{ flexDirection: "row", alignItems: "center", backgroundColor: "rgba(255, 255, 255, .5)", borderRadius: 10, paddingHorizontal: 10, height: 30 }}>
-                                <Text style={{ fontSize: 12, color: "grey" }}>Wöchentlich</Text>
-                                <Switch value={eventIsWeekly} color={theme.colors.primary} style={{ transform: [{ scaleX: .8 }, { scaleY: .8 }] }} onValueChange={(v) => {
-                                    setEventIsWeekly(v)
-                                    setEventToEdit({
-                                        ...eventToEdit,
-                                        isWeekly: v
-                                    });
-                                }} />
-                            </View>
-                        </View>
-                    </View>
-                </BottomSheetModal>
-            </BottomSheetModalProvider>
-            {
-                Platform.OS === 'android' && isPickerVisible && <DateTimePicker
-                    value={datepickerStartTime()}
-                    mode='time'
-                    is24Hour
-                    onChange={pickerOnChange}
-                />
+                    </BottomSheetModal>
+                </BottomSheetModalProvider>
+                {
+                    Platform.OS === 'android' && isPickerVisible && <DateTimePicker
+                        value={datepickerStartTime()}
+                        mode='time'
+                        is24Hour
+                        onChange={pickerOnChange}
+                    />
 
-            }
-        </View >
+                }
+            </View>
+            {isSaving && <ActivityIndicator size='large' color='grey' style={styles.indicator} />}
+        </>
     )
 }
 
@@ -520,6 +562,10 @@ const styles = StyleSheet.create({
     indicator: {
         width: '100%',
         height: '100%',
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: 'rgba(255, 255, 255, 0.7)',
+        position: 'absolute'
     },
 });
 

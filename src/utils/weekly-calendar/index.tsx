@@ -67,7 +67,6 @@ const WeeklyCalendar = (props: Props) => {
         setCalendarReady(true)
     }
 
-
     const createWeekdays = (date: moment.Moment) => {
         const dayViews = []
         const offsets: any[] = []
@@ -78,15 +77,14 @@ const WeeklyCalendar = (props: Props) => {
             setWeekdays(weekdays => [...weekdays, weekdayMoment])
             setWeekdayLabels(weekdayLabels => [...weekdayLabels, weekdayMoment.format(props.weekdayFormat)])
 
-            let events: _Event[] = getEventsFromMap(weekdayMoment)
-            let eventViews: React.ReactNode[] = []
-
+            const events: _Event[] = getEventsFromMap(weekdayMoment)
             events.sort((a, b) => {
                 const timeA = parseInt(a.start.time.replace(":", ""));
                 const timeB = parseInt(b.start.time.replace(":", ""));
                 return timeA - timeB;
             });
 
+            let eventViews: React.ReactNode[] = []
             if (props.renderEvent !== undefined) {
                 eventViews = events.map((event, ii) => props.renderEvent(event, events[ii - 1], weekdayMoment.clone(), ii))
             } else throw "Please create a Component for renderEvent prop"

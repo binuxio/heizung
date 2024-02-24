@@ -4,19 +4,17 @@ import Ionicons from "@expo/vector-icons/Ionicons"
 import Material from "@expo/vector-icons/MaterialCommunityIcons"
 import { Text } from 'react-native'
 import moment from 'moment/min/moment-with-locales';
-import getStartTimeMoment from './utils/getStartTimeMoment'
-import { _Event } from '../types'
-import theme from '../../theme'
-import getEventDetails from './utils/getEventDetails'
+import { _Event } from '../../components/types'
+import getEventMoments from '../../components/Schedule/utils/getEventMoments'
 
 // structure2
 
 const EventDayView: React.FC<{ event: _Event, prevEvent: _Event | undefined, weekDayDateMoment: moment.Moment }> = ({ event, prevEvent, weekDayDateMoment }) => {
-    const { startMoment, endMoment, isWeekly } = getEventDetails(event, weekDayDateMoment)!
+    const { startMoment, endMoment, isWeekly } = getEventMoments(event, weekDayDateMoment)
     const crossesDay = startMoment.format('YYYY-MM-DD') !== endMoment.format('YYYY-MM-DD')
     let prevEndTimeConflicting = false
     if (prevEvent) {
-        const prevEndMoment = getEventDetails(prevEvent, weekDayDateMoment)!.endMoment
+        const prevEndMoment = getEventMoments(prevEvent, weekDayDateMoment).endMoment
         prevEndTimeConflicting = prevEndMoment.isSameOrAfter(startMoment)
     }
     return <View style={{}}>
