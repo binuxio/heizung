@@ -22,57 +22,47 @@ app.post("/toggle", (req, res) => {
     // Add your toggle logic here
 });
 
+const errorHandler = (err, req, res, next) => {
+    console.error(err);
+    res.status(500).json({ error: err.message });
+};
+app.use(errorHandler);
 
-app.get("/getSchedule", (req, res) => {
-    console.log("request schedule");
-    const schedule = readSchedule();
-    if ('error' in schedule) {
-        res.status(500).json({ error: schedule.error });
-    } else {
-        res.json(schedule);
+app.post('/updateSchedule', async (req, res, next) => {
+    try {
+        const body: UpdateScheduleReq = req.body;
+        const schedule = await readSchedule();
+
+        const updatedSchedule = schedule.filter(event => !body.removedEvents.includes(event._id));
+        updatedSchedule.push(...body.newEvents);
+
+        await writeScheduleAtomically(updatedSchedule);
+
+        res.sendStatus(200);
+    } catch (err) {
+        next(err);
     }
 });
 
-app.post("/updateSchedule", (req, res) => {
-    const body: UpdateScheduleReq = req.body
-    console.log(body)
-    updateSchedule(body.removedEvents, body.newEvents, res)
-})
-
-async function updateSchedule(removedEvents: string[], newEvents: _Event[], res: express.Response) {
-    const schedule = readSchedule()
-    if ('error' in schedule) {
-        console.log("here")
-        res.status(500).json({ error: schedule.error });
-        return
-    } else {
-        // console.log(schedule); res.send(200); return;
-        let updatedSchedule = schedule.filter(event => !removedEvents.includes(event._id))
-        updatedSchedule = { ...updatedSchedule, ...newEvents }
-        const result = writeSchedule(updatedSchedule)
-        if (result) { res.status(500).json({ error: result.error }); return }
-        res.sendStatus(200)
-    }
-}
-
-function writeSchedule(schedule: Schedule): void | { error: string } {
+async function writeScheduleAtomically(schedule: Schedule) {
+    const tempPath = `${schedulePath}.tmp`;
     try {
         const scheduleJson = JSON.stringify(schedule, null, 2);
-        fs.writeFileSync(schedulePath, scheduleJson.toString(), 'utf8');
+        await fs.promises.writeFile(tempPath, scheduleJson, 'utf8');
+        await fs.promises.rename(tempPath, schedulePath); // Rename atomically
     } catch (err) {
-        console.log("Error writing schedule file:", err)
-        return { error: "Error writing schedule file" };
+        console.error("Error writing schedule file:", err);
+        throw err; // Re-throw for centralized handling
     }
 }
 
-function readSchedule(): Schedule | { error: string } {
+async function readSchedule(): Promise<Schedule> {
     try {
-        const data = fs.readFileSync(schedulePath, "utf8");
-        const schedule = JSON.parse(data);
-        return schedule;
+        const data = await fs.promises.readFile(schedulePath, 'utf8');
+        return JSON.parse(data);
     } catch (err) {
         console.error("Error reading or parsing schedule file:", err);
-        return { error: "Error reading or parsing schedule file" };
+        throw err;
     }
 }
 
