@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import { Alert, SafeAreaView, StyleSheet, Text, View } from 'react-native'
 import WeeklyCalendar from '../../../utils/weekly-calendar'
-import { Schedule } from '../../types'
+import { Schedule } from '../../types.schedule'
 import EventDayView from '../../../utils/weekly-calendar/EventDayView'
 import theme from '../../../theme'
 import { RootState } from '../../../../redux/store'

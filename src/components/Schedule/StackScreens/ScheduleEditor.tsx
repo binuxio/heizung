@@ -8,7 +8,7 @@ import { AntDesign, Ionicons, MaterialCommunityIcons } from '@expo/vector-icons'
 import theme from '../../../theme';
 import getEventDetails from '../utils/getEventMoments';
 import getEventsFromMap from '../utils/getEventsFromMap';
-import { EventMoments, _Event } from '../../types';
+import { EventMoments, _Event } from '../../types.schedule';
 // import { StatusBar } from 'expo-status-bar';
 import "moment/locale/de"
 import { BottomSheetModal, BottomSheetModalProvider } from '@gorhom/bottom-sheet';
@@ -166,7 +166,7 @@ const ScheduleEditor = ({ navigation, route }: ScheduleStackScreenProps<"Schedul
         if (eventToEdit.startMoment === undefined || eventToEdit.endMoment === undefined)
             return
 
-        if (eventToEditIndex !== undefined) { // if the currently saving event is not new but modified, add to deletions list and give it a new id
+        if (eventToEditIndex !== undefined) { // if the saving event is not new but modified, add to deletions list and give it a new id
             removedEvents_id.push(events[eventToEditIndex]._id!)
         }
 

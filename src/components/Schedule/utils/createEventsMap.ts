@@ -1,4 +1,4 @@
-import { Schedule, _Event } from "../../types"
+import { Schedule, _Event } from "../../types.schedule"
 
 export const eventsMap = new Map<number | string, _Event[]>()
 

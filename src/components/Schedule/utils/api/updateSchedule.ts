@@ -1,5 +1,5 @@
 import moment from "moment";
-import { EventMoments } from "../../../types";
+import { EventMoments } from "../../../types.schedule";
 import getEventsFromMap from "../getEventsFromMap";
 import revert from "../revert";
 import createEventsMap, { eventsMap } from "../createEventsMap";

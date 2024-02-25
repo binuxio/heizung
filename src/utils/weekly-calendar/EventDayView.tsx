@@ -4,7 +4,7 @@ import Ionicons from "@expo/vector-icons/Ionicons"
 import Material from "@expo/vector-icons/MaterialCommunityIcons"
 import { Text } from 'react-native'
 import moment from 'moment/min/moment-with-locales';
-import { _Event } from '../../components/types'
+import { _Event } from '../../components/types.schedule'
 import getEventMoments from '../../components/Schedule/utils/getEventMoments'
 
 // structure2

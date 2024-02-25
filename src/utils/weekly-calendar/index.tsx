@@ -4,7 +4,7 @@ import moment from 'moment/min/moment-with-locales';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { applyLocale, displayTitleByLocale } from './src/Locale';
 import styles from './src/Style';
-import { _Event } from '../../components/types';
+import { _Event } from '../../components/types.schedule';
 import { ProgressBar, TouchableRipple } from 'react-native-paper';
 import theme from '../../theme';
 import { useAppDispatch, useAppSelector } from '../../../redux/hooks';

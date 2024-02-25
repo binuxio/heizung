@@ -1,7 +1,7 @@
 import { createSlice, current } from '@reduxjs/toolkit'
 import type { PayloadAction } from '@reduxjs/toolkit'
 import moment from 'moment'
-import { EventDetails, Schedule, SpecialEvent, WeeklyEvent } from '../src/components/types'
+import { EventDetails, Schedule, SpecialEvent, WeeklyEvent } from '../src/components/types.schedule'
 
 
 

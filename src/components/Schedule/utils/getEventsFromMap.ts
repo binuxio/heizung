@@ -1,5 +1,5 @@
 import moment from "moment";
-import { _Event } from "../../types";
+import { _Event } from "../../types.schedule";
 import { eventsMap } from "./createEventsMap";
 
 export default function (weekdayMoment: moment.Moment, dateFormat = "DD-MM-YYYY"): _Event[] {

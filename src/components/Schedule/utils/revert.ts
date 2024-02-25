@@ -1,10 +1,9 @@
-import { EventMoments, _Event } from "../../types";
+import { EventMoments, _Event } from "../../types.schedule";
 
 export default function (eventMoments: EventMoments[]): _Event[] {
     const events: _Event[] = eventMoments.map(eventMoment => {
         const startTime = eventMoment.startMoment.format("HH:mm")
         const endTime = eventMoment.endMoment.format("HH:mm")
-        const endDate = eventMoment.endMoment.format("DD-MM-YYYY")
 
         if (eventMoment.isWeekly) {
             const startDay = eventMoment.startMoment.isoWeekday()
@@ -14,7 +13,6 @@ export default function (eventMoments: EventMoments[]): _Event[] {
                     time: startTime
                 },
                 end: {
-                    date: endDate,
                     time: endTime
                 },
                 _id: eventMoment._id,
@@ -29,7 +27,6 @@ export default function (eventMoments: EventMoments[]): _Event[] {
                 time: startTime
             },
             end: {
-                date: endDate,
                 time: endTime
             },
             _id: eventMoment._id,

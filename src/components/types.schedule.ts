@@ -8,7 +8,6 @@ export type WeeklyEvent = {
         time: string;
     };
     end: {
-        day: number;
         time: string;
     }
 };
@@ -21,7 +20,6 @@ export type SpecialEvent = {
         time: string;
     };
     end: {
-        date: string;
         time: string;
     }
 };
