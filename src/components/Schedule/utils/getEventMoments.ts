@@ -1,6 +1,5 @@
 import moment from "moment";
 import { EventMoments, _Event } from "../../types.schedule";
-import crossesDays from "./crossesDays";
 
 export default function (event: _Event, weekdayMoment: moment.Moment): EventMoments {
     const isWeekly = event.start.day != undefined

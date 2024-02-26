@@ -20,17 +20,15 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import { StatusBar } from 'expo-status-bar';
 import { ListItem } from '@rneui/base';
 import { useAlert } from '../../UI/AlertPaperProvider';
-import updateSchedule from '../utils/api/updateSchedule';
-import { useDialog } from '../../UI/PaperDialogProvider';
-import fetchSchedule from '../utils/api/fetchSchedule';
+import updateSchedule from '../../api/updateSchedule';
+import fetchSchedule from '../../api/fetchSchedule';
 import { useAppDispatch } from '../../../../redux/hooks';
-import { setIsRefreshingCalendar, setIsSyncSchedule, triggerCalenderRerender } from '../../../../redux/slice';
-import errorHandlerUI from '../utils/api/errorHandlerUI';
-import { useNetInfo } from '@react-native-community/netinfo';
+import { triggerCalenderRerender } from '../../../../redux/slice';
+import errorHandlerUI from '../../UI/errorHandlerUI';
 
 let removedEvents_ids: string[] = []
 let newEvents_id: string[] = []
-let thisevents: EventMoments[] = [] // as workaround to get the events because when calling it in finalSave the current event is not uptodate
+let thisevents: EventMoments[] = [] // as workaround to get the events because when calling it in updateOnServer the current event is not uptodate
 let eventsTimeConflicts = false
 type EventToEdit = { startMoment: moment.Moment | undefined, endMoment: moment.Moment | undefined, isWeekly: boolean, _id: string | undefined }
 const ScheduleEditor = ({ navigation, route }: ScheduleStackScreenProps<"ScheduleEditor">) => {
@@ -45,8 +43,8 @@ const ScheduleEditor = ({ navigation, route }: ScheduleStackScreenProps<"Schedul
     const [timeBeingSet, setTimeBeingSet] = useState<"start" | "end" | undefined>(undefined)
     const [isPickerVisible, setPickerVisible] = useState(false)
     const [changesMade, setChangesMade] = useState(false)
-    const [changesNeverMade, setChangesNeverMade] = useState(true)
-    const [isSaving, setIsSaving] = useState(false)
+    const [eventsUpdateSuccess, setEventsUpdateSuccess] = useState(false)
+    const [isSaving, setIsUpadatingOnServer] = useState(false)
     const [editingMode, setEditingMode] = useState<"modify" | "create" | undefined>(undefined)
     const bottomSheetModalRef = useRef<BottomSheetModal>(null);
     const { showAlert } = useAlert()
@@ -63,6 +61,7 @@ const ScheduleEditor = ({ navigation, route }: ScheduleStackScreenProps<"Schedul
                             text: "Verwerfen",
                             buttonStyle: { fontSize: 13, textDecorationLine: "underline" },
                             onPress() {
+                                if (eventsUpdateSuccess) updateCalendar()
                                 navigation.dispatch(ev.data.action);
                             },
                         },
@@ -71,25 +70,22 @@ const ScheduleEditor = ({ navigation, route }: ScheduleStackScreenProps<"Schedul
                         }
                     ]
                 })
-            } else if (!changesNeverMade) {
-                // trigger a schedule sync
-                (async function () {
-                    const res = await fetchSchedule(dispatch)
-                    errorHandlerUI(res, useNetInfo())
-                    setTimeout(() => {
-                        dispatch(triggerCalenderRerender(true))
-                    }, 0);
-                })()
-
-            }
+            } else if (eventsUpdateSuccess) updateCalendar()
         };
+
+        const updateCalendar = async () => {
+            const res = await fetchSchedule(dispatch)
+            setTimeout(() => {
+                dispatch(triggerCalenderRerender(true))
+            }, 100);
+        }
 
         const unsubscribe = navigation.addListener('beforeRemove', onPageLeave);
 
         navigation.setOptions({
             headerRight(props) {
                 return <TouchableOpacity
-                    onPress={finalSave}
+                    onPress={updateOnServer}
                     disabled={!changesMade}
                     activeOpacity={.4}
                     style={{
@@ -145,7 +141,7 @@ const ScheduleEditor = ({ navigation, route }: ScheduleStackScreenProps<"Schedul
         thisevents = [...events]
     }, [events])
 
-    const finalSave = async () => {
+    const updateOnServer = async () => {
         if (eventsTimeConflicts) {
             showAlert({
                 title: "Bitte überprüfe den Plan",
@@ -153,12 +149,13 @@ const ScheduleEditor = ({ navigation, route }: ScheduleStackScreenProps<"Schedul
             })
             return
         }
-        setIsSaving(true)
+        setIsUpadatingOnServer(true)
         const newEvents = thisevents.filter(event => newEvents_id.includes(event._id!))
         const res = await updateSchedule(removedEvents_ids, newEvents, weekDayDate!)
-        setIsSaving(false)
+        setIsUpadatingOnServer(false)
         errorHandlerUI(res)
         if (res.status != 200) return
+        setEventsUpdateSuccess(true)
         removedEvents_ids = new Array()
         newEvents_id = new Array()
         setChangesMade(false)
@@ -216,7 +213,6 @@ const ScheduleEditor = ({ navigation, route }: ScheduleStackScreenProps<"Schedul
 
         setEvents(updatedEvents);
         setChangesMade(true);
-        setChangesNeverMade(false)
         closeBottomSheet();
     };
 
@@ -350,7 +346,6 @@ const ScheduleEditor = ({ navigation, route }: ScheduleStackScreenProps<"Schedul
     const animateDeletion = useRef(new Animated.Value(1)).current;
     const animateDelete = () => {
         setChangesMade(true)
-        setChangesNeverMade(false)
         Animated.timing(animateDeletion, {
             toValue: 0,
             duration: 300,

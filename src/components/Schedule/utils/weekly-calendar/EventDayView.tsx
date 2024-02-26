@@ -1,14 +1,12 @@
-import React, { useState } from 'react'
+import React from 'react'
 import { StyleSheet, View } from 'react-native'
 import Ionicons from "@expo/vector-icons/Ionicons"
 import Material from "@expo/vector-icons/MaterialCommunityIcons"
 import { Text } from 'react-native'
 import moment from 'moment/min/moment-with-locales';
-import { _Event } from '../../components/types.schedule'
-import getEventMoments from '../../components/Schedule/utils/getEventMoments'
-import crossesDays from '../../components/Schedule/utils/crossesDays'
-
-// structure2
+import getEventMoments from '../getEventMoments'
+import crossesDays from '../crossesDays'
+import { _Event } from '../../../types.schedule'
 
 const EventDayView: React.FC<{ event: _Event, prevEvent: _Event | undefined, weekDayDateMoment: moment.Moment }> = ({ event, prevEvent, weekDayDateMoment }) => {
     const { startMoment, endMoment, isWeekly } = getEventMoments(event, weekDayDateMoment)

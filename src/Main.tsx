@@ -7,6 +7,7 @@ import ScheduleScreen from './TabScreens/ScheduleScreen';
 import theme from './theme';
 import { RootStackParamList } from './TabScreens/types';
 import { useAppSelector } from '../redux/hooks';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 const Tab = createBottomTabNavigator<RootStackParamList>();
 
@@ -28,7 +29,7 @@ const Main: React.FC = () => {
       <Tab.Screen name="SchedueScreen" component={ScheduleScreen}
         options={{
           headerShown: false,
-          tabBarIcon: ({ focused }) => <Ionicons name={"calendar"} size={25} color={focused ? theme.colors.primary : "black"} />
+          tabBarIcon: ({ focused }) => <MaterialCommunityIcons name={"calendar-edit"} size={25} color={focused ? theme.colors.primary : "black"} />
         }}
       />
     </Tab.Navigator>

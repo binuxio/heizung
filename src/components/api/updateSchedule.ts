@@ -1,9 +1,9 @@
-import { EventMoments } from "../../../types.schedule";
-import revert from "../revert";
 import axios from "axios"
 import errorHandler from "./errorHandler";
 import { serverURL } from "./env";
 import { RequestReturn } from "./types";
+import revert from "../Schedule/utils/revert";
+import { EventMoments } from "../types.schedule";
 
 
 export default async function (removedEvents: string[], newEventsMoment: EventMoments[], weekDayDate: string): Promise<RequestReturn> {

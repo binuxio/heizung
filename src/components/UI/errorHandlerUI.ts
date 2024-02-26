@@ -1,11 +1,10 @@
 import { Alert } from "react-native";
-import { RequestReturn } from "./types";
+import { RequestReturn } from "../api/types";
 import { NetInfoConnectedDetails, NetInfoState } from "@react-native-community/netinfo";
 
 export default function (res: RequestReturn, netinfo: NetInfoState | null = null) {
     if (netinfo) {
-        if (!netinfo.isInternetReachable)
-            res.status = "ERR_NETWORK"
+        if (!netinfo.isInternetReachable) res.status = "ERR_NETWORK"
     }
 
     if (res.status != 200) {

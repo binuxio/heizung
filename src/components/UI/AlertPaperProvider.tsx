@@ -73,7 +73,6 @@ const AlertPaperProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     );
 
     const AlertComponent = () => {
-        console.log(alertConfig.dialogStyle)
         return (
             <Portal>
                 <Dialog dismissable={alertConfig.dismissable || initialConf.dismissable}

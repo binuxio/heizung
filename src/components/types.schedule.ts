@@ -1,4 +1,5 @@
 export type Schedule = _Event[]
+export type _Event = WeeklyEvent | SpecialEvent
 
 export type WeeklyEvent = {
     _id: string
@@ -23,8 +24,6 @@ export type SpecialEvent = {
         time: string;
     }
 };
-
-export type _Event = WeeklyEvent | SpecialEvent
 
 export type EventMoments = {
     isWeekly: boolean

@@ -4,15 +4,14 @@ import moment from 'moment/min/moment-with-locales';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { applyLocale, displayTitleByLocale } from './src/Locale';
 import styles from './src/Style';
-import { _Event } from '../../components/types.schedule';
+import { _Event } from '../../../types.schedule';
 import { ProgressBar, TouchableRipple } from 'react-native-paper';
-import theme from '../../theme';
-import { useAppDispatch, useAppSelector } from '../../../redux/hooks';
-import { setIsRefreshingCalendar, triggerCalenderRerender } from '../../../redux/slice';
-import getEventsFromMap from '../../components/Schedule/utils/getEventsFromMap';
-import Progress from 'react-native-progress';
-import { ScheduleStackScreenProps } from '../../components/Schedule/StackScreens/types';
-import fetchSchedule from '../../components/Schedule/utils/api/fetchSchedule';
+import theme from '../../../../theme';
+import { useAppDispatch, useAppSelector } from '../../../../../redux/hooks';
+import { setIsRefreshingCalendar, triggerCalenderRerender } from '../../../../../redux/slice';
+import getEventsFromMap from '../getEventsFromMap';
+import { ScheduleStackScreenProps } from '../../../Schedule/StackScreens/types';
+import fetchSchedule from '../../../api/fetchSchedule';
 
 interface Props {
     selectedDate: string;
@@ -219,16 +218,6 @@ const WeeklyCalendar = (props: Props) => {
                     })}
                 </View>
             </View>
-            {/* <View style={{ width: "100%", justifyContent: "center" }}>
-                <ProgressBar
-                    style={{ height: 1 }}
-                    fillStyle={{
-                        backgroundColor: theme.colors.primary, height: 1
-                    }}
-                    indeterminate
-                    color={theme.colors.primary}
-                />
-            </View> */}
             <ScrollView ref={scrollViewRef} style={styles.schedule}
                 refreshControl={<RefreshControl
                     refreshing={isRefreshing}

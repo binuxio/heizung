@@ -1,7 +1,7 @@
-import createEventsMap, { eventsMap } from '../createEventsMap';
-import { AppDispatch } from '../../../../../redux/store';
-import { setIsRefreshingCalendar } from '../../../../../redux/slice';
-import axios, { AxiosError } from "axios"
+import createEventsMap, { eventsMap } from '../Schedule/utils/createEventsMap';
+import { AppDispatch } from '../../../redux/store';
+import { setIsRefreshingCalendar } from '../../../redux/slice';
+import axios from "axios"
 import errorHandler from './errorHandler';
 import { serverURL } from './env';
 import { RequestReturn } from './types';
