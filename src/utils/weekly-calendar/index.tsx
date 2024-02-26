@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Text, View, ScrollView, TouchableOpacity, TouchableWithoutFeedback, Modal, Platform, ActivityIndicator, StyleSheet } from 'react-native';
+import { Text, View, ScrollView, TouchableOpacity, TouchableWithoutFeedback, Modal, Platform, ActivityIndicator, StyleSheet, RefreshControl } from 'react-native';
 import moment from 'moment/min/moment-with-locales';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { applyLocale, displayTitleByLocale } from './src/Locale';
@@ -8,10 +8,11 @@ import { _Event } from '../../components/types.schedule';
 import { ProgressBar, TouchableRipple } from 'react-native-paper';
 import theme from '../../theme';
 import { useAppDispatch, useAppSelector } from '../../../redux/hooks';
-import { triggerCalenderRerender } from '../../../redux/slice';
+import { setIsRefreshingCalendar, triggerCalenderRerender } from '../../../redux/slice';
 import getEventsFromMap from '../../components/Schedule/utils/getEventsFromMap';
 import Progress from 'react-native-progress';
 import { ScheduleStackScreenProps } from '../../components/Schedule/StackScreens/types';
+import fetchSchedule from '../../components/Schedule/utils/api/fetchSchedule';
 
 interface Props {
     selectedDate: string;
@@ -31,9 +32,9 @@ interface Props {
 
 const WeeklyCalendar = (props: Props) => {
     const [currDate, setCurrDate] = useState(moment(props.selectedDate).locale(props.locale))
+    const [selectedDate, setSelectedDate] = useState(currDate.clone())
     const [weekdays, setWeekdays] = useState<moment.Moment[]>([])
     const [weekdayLabels, setWeekdayLabels] = useState<string[]>([])
-    const [selectedDate, setSelectedDate] = useState(currDate.clone())
     const [isCalendarReady, setCalendarReady] = useState(false)
     const [pickerDate, setPickerDate] = useState(currDate.clone())
     const [isPickerVisible, setPickerVisible] = useState(false)
@@ -46,13 +47,13 @@ const WeeklyCalendar = (props: Props) => {
     const scrollViewRef = useRef<ScrollView>(null)
     const dispatch = useAppDispatch()
     const triggerRerender = useAppSelector(state => state.appState.triggerCalenderRerender)
-
+    const isRefreshing = useAppSelector(state => state.appState.isRefreshingCalendar)
 
     useEffect(() => {
         applyLocale(props.locale, (cancelText: string) => setCancelText(cancelText), (confirmText: string) => setConfirmText(confirmText))
         updateCalendar()
     }, [])
-
+    console.log("hot calender rerender")
     useEffect(() => {
         if (triggerRerender) {
             console.log("rerender calendar")
@@ -89,7 +90,7 @@ const WeeklyCalendar = (props: Props) => {
                 eventViews = events.map((event, ii) => props.renderEvent(event, events[ii - 1], weekdayMoment.clone(), ii))
             } else throw "Please create a Component for renderEvent prop"
 
-            let dayView = <TouchableRipple rippleColor={theme.colors.primary}
+            let dayView = <TouchableRipple rippleColor={theme.colors.eventBackground}
                 key={i.toString()}
                 onPress={onEventPress.bind(this, weekdayMoment.clone().format().toString())}>
                 <View style={[styles.dayContainer, { borderBottomWidth: StyleSheet.hairlineWidth }]} onLayout={event => { offsets[i] = event.nativeEvent.layout.y }}>
@@ -114,9 +115,8 @@ const WeeklyCalendar = (props: Props) => {
     const clickLastWeekHandler = () => {
         setCalendarReady(false)
         setTimeout(() => {
-
             const lastWeekCurrDate = currDate.subtract(7, 'days')
-            setSelectedDate(lastWeekCurrDate.clone().weekday(props.startWeekday - 7))
+            setSelectedDate(lastWeekCurrDate.clone())
             setCurrDate(lastWeekCurrDate.clone())
             createWeekdays(lastWeekCurrDate.clone())
             setCalendarReady(true)
@@ -125,10 +125,10 @@ const WeeklyCalendar = (props: Props) => {
 
     const clickNextWeekHandler = () => {
         setCalendarReady(false)
+        const nextWeekCurrDate = currDate.add(7, 'days')
         setTimeout(() => {
-            const nextWeekCurrDate = currDate.add(7, 'days')
             setCurrDate(nextWeekCurrDate.clone())
-            setSelectedDate(nextWeekCurrDate.clone().weekday(props.startWeekday - 7))
+            setSelectedDate(nextWeekCurrDate.clone())
             createWeekdays(nextWeekCurrDate.clone())
             setCalendarReady(true)
         }, 0);
@@ -175,8 +175,17 @@ const WeeklyCalendar = (props: Props) => {
 
     const isToday = (weekday: moment.Moment) => today == moment(weekday).format(props.dateFormat)
 
+    const onRefresh = async () => {
+        const res = await fetchSchedule(dispatch)
+        if (res.error) {
+            //TODO: handle error
+            return
+        }
+        dispatch(triggerCalenderRerender(true))
+    }
+
     return (
-        <View style={[styles.component, { backgroundColor: theme.colors.background }]} >
+        <View style={[styles.component, { backgroundColor: theme.colors.background }]}>
             <View style={styles.header}>
                 <TouchableOpacity style={styles.arrowButton} onPress={clickLastWeekHandler} >
                     <Text style={{ color: props.themeColor, fontSize: 20 }}> {'\u25C0'} </Text>
@@ -195,16 +204,19 @@ const WeeklyCalendar = (props: Props) => {
                     </View>)}
                 </View>
                 <View style={styles.weekdayNumberContainer} >
-                    {weekdays.map((weekday, i) => <TouchableOpacity style={styles.weekDayNumber} onPress={onDayPress.bind(this, weekday, i)} key={i}>
-                        <View style={isCalendarReady && isSelectedDate(weekday) ? [styles.weekDayNumberCircle, { backgroundColor: props.themeColor }] : {}}>
-                            <Text style={isSelectedDate(weekday)
-                                ? styles.weekDayNumberTextToday : { color: props.themeColor }}>
-                                {isCalendarReady ? weekday.date() : ''}
-                            </Text>
-                        </View>
-                        {isCalendarReady && today == moment(weekday).format(props.dateFormat) &&
-                            <View style={isSelectedDate(weekday) ? [styles.dot, { backgroundColor: 'white' }] : [styles.dot, { backgroundColor: props.themeColor }]} />}
-                    </TouchableOpacity>)}
+                    {weekdays.map((weekday, i) => {
+                        const isselectedDate = isSelectedDate(weekday)
+                        return <TouchableOpacity style={styles.weekDayNumber} onPress={onDayPress.bind(this, weekday, i)} key={i}>
+                            <View style={isCalendarReady && isselectedDate ? [styles.weekDayNumberCircle, { backgroundColor: props.themeColor }] : {}}>
+                                <Text style={isselectedDate
+                                    ? styles.weekDayNumberTextToday : { color: props.themeColor }}>
+                                    {isCalendarReady ? weekday.date() : ''}
+                                </Text>
+                            </View>
+                            {isCalendarReady && today == moment(weekday).format(props.dateFormat) &&
+                                <View style={isselectedDate ? [styles.dot, { backgroundColor: 'white' }] : [styles.dot, { backgroundColor: props.themeColor }]} />}
+                        </TouchableOpacity>
+                    })}
                 </View>
             </View>
             {/* <View style={{ width: "100%", justifyContent: "center" }}>
@@ -217,7 +229,13 @@ const WeeklyCalendar = (props: Props) => {
                     color={theme.colors.primary}
                 />
             </View> */}
-            <ScrollView ref={scrollViewRef} style={styles.schedule}>
+            <ScrollView ref={scrollViewRef} style={styles.schedule}
+                refreshControl={<RefreshControl
+                    refreshing={isRefreshing}
+                    colors={[theme.colors.primary, theme.colors.primaryLight]}
+                    progressViewOffset={45}
+                    onRefresh={onRefresh}
+                />}>
                 {scheduleView}
             </ScrollView>
             {

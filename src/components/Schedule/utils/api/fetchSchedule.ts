@@ -1,18 +1,24 @@
 import createEventsMap, { eventsMap } from '../createEventsMap';
+import { AppDispatch } from '../../../../../redux/store';
+import { setIsRefreshingCalendar } from '../../../../../redux/slice';
+import axios, { AxiosError } from "axios"
+import errorHandler from './errorHandler';
+import { serverURL } from './env';
+import { RequestReturn } from './types';
 
-export default async function (): Promise<{ status: number, error?: string }> {
-    // const url = "http://192.168.223.103:6500/getSchedule"
-    const url = "http://192.168.178.64:6500/getSchedule"
-    // const url = "http://192.168.2.164:6500/getSchedule"
+export default async function (dispatch: AppDispatch): Promise<RequestReturn> {
+    console.log("fetching schedule")
     try {
-        const res = await fetch(url)
-        if (res.status == 200) {
-            const schedule = await res.json()
-            eventsMap.clear()
-            createEventsMap(schedule)
-            return { status: 200 }
-        } else return { status: res.status, error: await res.text() }
+        dispatch(setIsRefreshingCalendar(true));
+        const res = await axios(serverURL + "/getSchedule", { timeout: 10000 })
+        const schedule = res.data
+        eventsMap.clear()
+        createEventsMap(schedule)
+        dispatch(setIsRefreshingCalendar(false));
+        return { status: 200 }
     } catch (error: any) {
-        return { status: 404, error: "Server kann nicht erreicht werden" }
+        console.log(axios.isAxiosError(error))
+        dispatch(setIsRefreshingCalendar(false));
+        return errorHandler(error)
     }
 }

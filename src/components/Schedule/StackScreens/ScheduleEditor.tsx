@@ -6,7 +6,7 @@ import {
 import moment from 'moment';
 import { AntDesign, Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import theme from '../../../theme';
-import getEventDetails from '../utils/getEventMoments';
+import getEventMoments from '../utils/getEventMoments';
 import getEventsFromMap from '../utils/getEventsFromMap';
 import { EventMoments, _Event } from '../../types.schedule';
 // import { StatusBar } from 'expo-status-bar';
@@ -22,10 +22,15 @@ import { ListItem } from '@rneui/base';
 import { useAlert } from '../../UI/AlertPaperProvider';
 import updateSchedule from '../utils/api/updateSchedule';
 import { useDialog } from '../../UI/PaperDialogProvider';
+import fetchSchedule from '../utils/api/fetchSchedule';
+import { useAppDispatch } from '../../../../redux/hooks';
+import { setIsRefreshingCalendar, setIsSyncSchedule, triggerCalenderRerender } from '../../../../redux/slice';
+import errorHandlerUI from '../utils/api/errorHandlerUI';
+import { useNetInfo } from '@react-native-community/netinfo';
 
-let removedEvents_id: string[] = []
+let removedEvents_ids: string[] = []
 let newEvents_id: string[] = []
-let thisevents: EventMoments[] = []
+let thisevents: EventMoments[] = [] // as workaround to get the events because when calling it in finalSave the current event is not uptodate
 let eventsTimeConflicts = false
 type EventToEdit = { startMoment: moment.Moment | undefined, endMoment: moment.Moment | undefined, isWeekly: boolean, _id: string | undefined }
 const ScheduleEditor = ({ navigation, route }: ScheduleStackScreenProps<"ScheduleEditor">) => {
@@ -40,9 +45,12 @@ const ScheduleEditor = ({ navigation, route }: ScheduleStackScreenProps<"Schedul
     const [timeBeingSet, setTimeBeingSet] = useState<"start" | "end" | undefined>(undefined)
     const [isPickerVisible, setPickerVisible] = useState(false)
     const [changesMade, setChangesMade] = useState(false)
+    const [changesNeverMade, setChangesNeverMade] = useState(true)
     const [isSaving, setIsSaving] = useState(false)
+    const [editingMode, setEditingMode] = useState<"modify" | "create" | undefined>(undefined)
     const bottomSheetModalRef = useRef<BottomSheetModal>(null);
     const { showAlert } = useAlert()
+    const dispatch = useAppDispatch()
 
     useEffect(() => {
         const onPageLeave = (ev: any) => {
@@ -63,6 +71,16 @@ const ScheduleEditor = ({ navigation, route }: ScheduleStackScreenProps<"Schedul
                         }
                     ]
                 })
+            } else if (!changesNeverMade) {
+                // trigger a schedule sync
+                (async function () {
+                    const res = await fetchSchedule(dispatch)
+                    errorHandlerUI(res, useNetInfo())
+                    setTimeout(() => {
+                        dispatch(triggerCalenderRerender(true))
+                    }, 0);
+                })()
+
             }
         };
 
@@ -89,33 +107,11 @@ const ScheduleEditor = ({ navigation, route }: ScheduleStackScreenProps<"Schedul
         };
     }, [changesMade, navigation]);
 
-    useEffect(() => {
-        console.log("events changing")
-        thisevents = [...events]
-    }, [events])
-
-    const finalSave = async () => {
-        if (eventsTimeConflicts) {
-            showAlert({
-                title: "Bitte überprüfe den Plan",
-                actions: [{ text: "OK" }]
-            })
-            return
-        }
-        setIsSaving(true)
-
-        const newEvents = thisevents.filter(event => newEvents_id.includes(event._id!))
-        const res = await updateSchedule(removedEvents_id, newEvents, weekDayDate!)
-        setChangesMade(false)
-        setIsSaving(false)
-        // navigation.goBack()
-    }
-
     useLayoutEffect(() => { // on mount
-        removedEvents = new Array()
+        removedEvents_ids = new Array()
         setTimeout(() => {
             const _events = getEventsFromMap(weekDayDateMoment)
-            const ev = _events.map(ev => getEventDetails(ev, weekDayDateMoment)!).sort((a, b) => {
+            const ev = _events.map(ev => getEventMoments(ev, weekDayDateMoment)!).sort((a, b) => {
                 const timeA = parseInt(a.startMoment.format("HH:mm").replace(":", ""));
                 const timeB = parseInt(b.startMoment.format("HH:mm").replace(":", ""));
                 return timeA - timeB;
@@ -145,9 +141,32 @@ const ScheduleEditor = ({ navigation, route }: ScheduleStackScreenProps<"Schedul
         })
     }, [])
 
-    // console.log("rerender editor", new Date().getTime())
+    useEffect(() => {
+        thisevents = [...events]
+    }, [events])
+
+    const finalSave = async () => {
+        if (eventsTimeConflicts) {
+            showAlert({
+                title: "Bitte überprüfe den Plan",
+                actions: [{ text: "OK" }]
+            })
+            return
+        }
+        setIsSaving(true)
+        const newEvents = thisevents.filter(event => newEvents_id.includes(event._id!))
+        const res = await updateSchedule(removedEvents_ids, newEvents, weekDayDate!)
+        setIsSaving(false)
+        errorHandlerUI(res)
+        if (res.status != 200) return
+        removedEvents_ids = new Array()
+        newEvents_id = new Array()
+        setChangesMade(false)
+    }
+
     const editEvent = (index: number) => {
         const ev = { ...events[index] }
+        setEditingMode("modify")
         setEventToEdit(ev)
         setEventToEditIndex(index)
         setEventIsWeekly(ev.isWeekly || false)
@@ -156,6 +175,7 @@ const ScheduleEditor = ({ navigation, route }: ScheduleStackScreenProps<"Schedul
 
     const createEvent = () => {
         const newEvent = { startMoment: undefined, endMoment: undefined, isWeekly: true, _id: new Date().getTime().toString() }
+        setEditingMode("create")
         setEventToEditIndex(undefined)
         setEventToEdit(newEvent)
         setEventIsWeekly(true)
@@ -166,25 +186,26 @@ const ScheduleEditor = ({ navigation, route }: ScheduleStackScreenProps<"Schedul
         if (eventToEdit.startMoment === undefined || eventToEdit.endMoment === undefined)
             return
 
-        if (eventToEditIndex !== undefined) { // if the saving event is not new but modified, add to deletions list and give it a new id
-            removedEvents_id.push(events[eventToEditIndex]._id!)
-        }
-
         const newEvent = {
             startMoment: eventToEdit.startMoment,
             endMoment: eventToEdit.endMoment,
             isWeekly: eventToEdit.isWeekly,
-            _id: eventToEdit._id
+            _id: eventToEdit._id!
         };
 
-        newEvents_id.push(newEvent._id!)
-
         const updatedEvents = [...events];
-
-        if (eventToEditIndex !== undefined) {
-            updatedEvents[eventToEditIndex] = newEvent;
-        } else {
-            updatedEvents.push(newEvent);
+        switch (editingMode) {
+            case "modify":
+                if (eventToEditIndex == undefined) return
+                removedEvents_ids.push(newEvent._id) // delete old event on server
+                newEvent._id = new Date().getTime().toString() // give it a new ID
+                newEvents_id.push(newEvent._id) // add new event on server
+                updatedEvents[eventToEditIndex] = newEvent; // overwrite the event
+                break;
+            case "create":
+                updatedEvents.push(newEvent);
+                newEvents_id.push(newEvent._id)
+                break;
         }
 
         updatedEvents.sort((a, b) => {
@@ -195,19 +216,26 @@ const ScheduleEditor = ({ navigation, route }: ScheduleStackScreenProps<"Schedul
 
         setEvents(updatedEvents);
         setChangesMade(true);
+        setChangesNeverMade(false)
         closeBottomSheet();
     };
 
-    const discardEventChanges = async () => {
-        if (eventToEditIndex !== undefined) {
-            if (eventToEdit.startMoment != (events[eventToEditIndex].startMoment)
-                || eventToEdit.endMoment != (events[eventToEditIndex].endMoment)) {
-                showAlert()
-            } else closeBottomSheet()
-        } else if (eventToEdit.startMoment !== undefined || eventToEdit.endMoment !== undefined) {
-            showAlert()
-        } else
-            closeBottomSheet();
+    const discardEventChanges = () => {
+        switch (editingMode) {
+            case "modify":
+                if (eventToEditIndex !== undefined) {
+                    if (eventToEdit.startMoment != (events[eventToEditIndex].startMoment)
+                        || eventToEdit.endMoment != (events[eventToEditIndex].endMoment)) { // check for changes
+                        showAlert()
+                    } else closeBottomSheet()
+                }
+                break
+            case "create":
+                if (eventToEdit.startMoment !== undefined || eventToEdit.endMoment !== undefined) // check for changes
+                    showAlert()
+                else closeBottomSheet();
+                break
+        }
 
         function showAlert() {
             Alert.alert(
@@ -227,41 +255,23 @@ const ScheduleEditor = ({ navigation, route }: ScheduleStackScreenProps<"Schedul
         }
     };
 
-    const deleteEvent = (index: number) => {
-        if (events[index]) { // check if eventToDeletedIndex still exists. Because user can delete the currently editing event
-            removedEvents_id.push(events[index]._id!) // add to deletion list
+    const deleteEvent = () => {
+        const index = eventToDeleteIndex!
+        if (events[index]) { // check if eventToDeleteIndex still exists. Because user can delete event that is being edit
+            removedEvents_ids.push(events[index]._id!) // add to deletion list
             const id = events[index]._id
-            newEvents_id = newEvents_id.filter(event_id => event_id != id) // remove from newEvents list if this event was created before
+            newEvents_id = newEvents_id.filter(event_id => event_id != id) // remove also from newEvents list if this event was created before
         }
 
-        const updatedEvents = [...events].splice(index, 1); // remove event from list
+        const updatedEvents = [...events]
+        updatedEvents.splice(index, 1); // remove event from list
         setEvents(updatedEvents);
 
         if (index == eventToEditIndex) { // check if selected event being deleted while editing
-            // setEventToEditIndex(undefined) // remove the eventToEdit from the current index to create a new event
             createEvent() // set currently editing event to null
+            console.log("event was deleted while editing")
         }
-    }
-
-    const openBottomSheet = () => {
-        bottomSheetModalRef.current!.present();
-    };
-
-    const closeBottomSheet = () => {
-        setEventToEditIndex(undefined)
-        bottomSheetModalRef.current!.close();
-    };
-
-    const BottomSheetHandler = () => {
-        return <View style={{ backgroundColor: "lightgrey", flexDirection: "row", alignItems: "center", paddingHorizontal: 20, paddingVertical: 7 }}>
-            <TouchableOpacity activeOpacity={.7} style={{ backgroundColor: "rgba(255, 255, 255, .6)", paddingHorizontal: 7, paddingVertical: 3, borderRadius: 7 }} onPress={discardEventChanges}>
-                <Text style={{ color: "grey" }}>Abbrechen</Text>
-            </TouchableOpacity>
-            <View style={bStyles.handle}></View>
-            <TouchableOpacity activeOpacity={.7} style={{ backgroundColor: theme.colors.eventBackground, paddingHorizontal: 7, paddingVertical: 3, borderRadius: 7, marginLeft: "auto" }} onPress={saveNewEvent}>
-                <Text style={{ color: theme.colors.primary }}>Fertig</Text>
-            </TouchableOpacity>
-        </View>
+        setEventToDeleteIndex(undefined)
     }
 
     const pickerOnChange = (_event: DateTimePickerEvent, pickedDate: Date | undefined) => {
@@ -340,13 +350,13 @@ const ScheduleEditor = ({ navigation, route }: ScheduleStackScreenProps<"Schedul
     const animateDeletion = useRef(new Animated.Value(1)).current;
     const animateDelete = () => {
         setChangesMade(true)
+        setChangesNeverMade(false)
         Animated.timing(animateDeletion, {
             toValue: 0,
             duration: 300,
             useNativeDriver: false,
         }).start(() => {
-            deleteEvent(eventToDeleteIndex!)
-            setEventToDeleteIndex(undefined)
+            deleteEvent()
             animateDeletion.setValue(1);
         });
     };
@@ -355,6 +365,27 @@ const ScheduleEditor = ({ navigation, route }: ScheduleStackScreenProps<"Schedul
         if (eventToDeleteIndex !== undefined)
             animateDelete()
     }, [eventToDeleteIndex]);
+
+    const BottomSheetHandler = () => {
+        return <View style={{ backgroundColor: "lightgrey", flexDirection: "row", alignItems: "center", paddingHorizontal: 20, paddingVertical: 7 }}>
+            <TouchableOpacity activeOpacity={.7} style={{ backgroundColor: "rgba(255, 255, 255, .6)", paddingHorizontal: 7, paddingVertical: 3, borderRadius: 7 }} onPress={discardEventChanges}>
+                <Text style={{ color: "grey" }}>Abbrechen</Text>
+            </TouchableOpacity>
+            <View style={bStyles.handle}></View>
+            <TouchableOpacity activeOpacity={.7} style={{ backgroundColor: theme.colors.eventBackground, paddingHorizontal: 7, paddingVertical: 3, borderRadius: 7, marginLeft: "auto" }} onPress={saveNewEvent}>
+                <Text style={{ color: theme.colors.primary }}>Fertig</Text>
+            </TouchableOpacity>
+        </View>
+    }
+
+    const openBottomSheet = () => {
+        bottomSheetModalRef.current!.present();
+    };
+
+    const closeBottomSheet = () => {
+        setEventToEditIndex(undefined)
+        bottomSheetModalRef.current!.close();
+    };
 
     return (
         <>

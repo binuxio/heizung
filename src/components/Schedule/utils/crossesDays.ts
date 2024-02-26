@@ -1,5 +1,12 @@
 import moment from "moment";
 
+/**
+ * 
+ * @param startMoment 
+ * @param endMoment - do not clone
+ */
 export default function (startMoment: moment.Moment, endMoment: moment.Moment): boolean {
-    return startMoment.clone().format('YYYY-MM-DD') !== endMoment.clone().format('YYYY-MM-DD')
+    const crossesDay = endMoment.isSameOrBefore(startMoment)
+    if (crossesDay) endMoment.add(1, "days")
+    return crossesDay
 }

@@ -6,12 +6,13 @@ import { Text } from 'react-native'
 import moment from 'moment/min/moment-with-locales';
 import { _Event } from '../../components/types.schedule'
 import getEventMoments from '../../components/Schedule/utils/getEventMoments'
+import crossesDays from '../../components/Schedule/utils/crossesDays'
 
 // structure2
 
 const EventDayView: React.FC<{ event: _Event, prevEvent: _Event | undefined, weekDayDateMoment: moment.Moment }> = ({ event, prevEvent, weekDayDateMoment }) => {
     const { startMoment, endMoment, isWeekly } = getEventMoments(event, weekDayDateMoment)
-    const crossesDay = startMoment.format('YYYY-MM-DD') !== endMoment.format('YYYY-MM-DD')
+    const crossesDay = crossesDays(startMoment, endMoment)
     let prevEndTimeConflicting = false
     if (prevEvent) {
         const prevEndMoment = getEventMoments(prevEvent, weekDayDateMoment).endMoment

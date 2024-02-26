@@ -176,7 +176,7 @@ const styles = StyleSheet.create({
         alignSelf: 'center',
         borderRadius: 4 / 2,
         position: 'absolute',
-        bottom: 0
+        bottom: 2
     }
 });
 

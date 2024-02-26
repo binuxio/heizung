@@ -11,28 +11,21 @@ import { triggerCalenderRerender } from '../../../../redux/slice'
 import fetchSchedule from '../utils/api/fetchSchedule'
 import { ScheduleStackScreenProps } from './types'
 
-function fetchEvents() {
+import { useNetInfo } from "@react-native-community/netinfo"
+import errorHandlerUI from '../utils/api/errorHandlerUI'
 
-}
 
 const EventsCalendar = ({ navigation, route }: ScheduleStackScreenProps<"EventsCalendar">) => {
     const dispatch = useAppDispatch()
 
+    const netInfo = useNetInfo();
+
+    console.log(netInfo.isInternetReachable)
+
     useEffect(() => {
         (async () => {
-            const res = await fetchSchedule()
-            if (!res || typeof res.status !== 'number') {
-                Alert.alert("Fehler", "Ungültige Antwort vom Server");
-            } else if (res.status !== 200) {
-                if (res.status === 404) {
-                    Alert.alert("Fehler", res.error);
-                } else if (res.status === 500) {
-                    Alert.alert("Interner Serverfehler", res.error || "Unbekannter Fehler");
-                } else {
-                    Alert.alert("Netzwerkfehler", "Daten konnten nicht geladen werden. Bitte überprüfe deine Internetverbindung");
-                }
-            }
-            // TODO: error handling
+            const res = await fetchSchedule(dispatch)
+            errorHandlerUI(res)
             dispatch(triggerCalenderRerender(true))
         })()
     }, [])

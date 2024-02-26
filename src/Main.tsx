@@ -14,7 +14,7 @@ const Main: React.FC = () => {
   const scheduleEditorOpen = useAppSelector(state => state.appState.scheduleEditorStackScreenOpen)
 
   return (
-    <Tab.Navigator initialRouteName='SchedueScreen' screenOptions={{
+    <Tab.Navigator initialRouteName='HomeScreen' screenOptions={{
       tabBarShowLabel: false,
       tabBarStyle: {
         display: scheduleEditorOpen ? "none" : "flex"

@@ -1,20 +1,18 @@
-import { createSlice, current } from '@reduxjs/toolkit'
+import { createSlice } from '@reduxjs/toolkit'
 import type { PayloadAction } from '@reduxjs/toolkit'
-import moment from 'moment'
-import { EventDetails, Schedule, SpecialEvent, WeeklyEvent } from '../src/components/types.schedule'
-
-
 
 interface Slice {
     isSyncSchedule: boolean
     triggerCalenderRerender: boolean
     scheduleEditorStackScreenOpen: boolean
+    isRefreshingCalendar: boolean
 }
 
 const initialState: Slice = {
     isSyncSchedule: false,
     triggerCalenderRerender: false,
-    scheduleEditorStackScreenOpen: false
+    scheduleEditorStackScreenOpen: false,
+    isRefreshingCalendar: false
 }
 
 export const appState = createSlice({
@@ -29,9 +27,12 @@ export const appState = createSlice({
         },
         triggerCalenderRerender(state, actions: PayloadAction<boolean>) {
             state.triggerCalenderRerender = actions.payload
+        },
+        setIsRefreshingCalendar(state, actions: PayloadAction<boolean>) {
+            state.isRefreshingCalendar = actions.payload
         }
     }
 })
 
-export const { triggerCalenderRerender, setIsSyncSchedule, setScheduleStackScreenOpen } = appState.actions
+export const { triggerCalenderRerender, setIsSyncSchedule, setScheduleStackScreenOpen, setIsRefreshingCalendar } = appState.actions
 export default appState

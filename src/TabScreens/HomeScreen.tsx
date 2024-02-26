@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { View, TouchableOpacity, Text, StyleSheet, ScrollView, StatusBar, Platform, Alert } from 'react-native';
-import StatusTable from '../components/StatusTable';
+import StatusTable from '../components/Home/StatusTable';
 import theme from '../theme';
 import { StackScreenProps } from '@react-navigation/stack';
 import { RootStackScreenProps } from './types';
