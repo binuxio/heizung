@@ -7,6 +7,5 @@ import moment from "moment";
  */
 export default function (startMoment: moment.Moment, endMoment: moment.Moment): boolean {
     const crossesDay = endMoment.isSameOrBefore(startMoment)
-    if (crossesDay) endMoment.add(1, "days")
     return crossesDay
 }

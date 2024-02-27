@@ -24,7 +24,7 @@ const EventDayView: React.FC<{ event: _Event, prevEvent: _Event | undefined, wee
             </View>
             <View style={styles.timeContainer}>
                 <Ionicons name='power' style={[styles.powerIcon, { marginRight: 5, color: "orange" }]} />
-                <Text style={styles.durationText}>{crossesDay ? endMoment.format("HH:mm, dd") : endMoment.format("HH:mm")}</Text>
+                <Text style={styles.durationText}>{crossesDay ? endMoment.clone().add(1, "days").format("HH:mm, dd") : endMoment.format("HH:mm")}</Text>
             </View>
             <View style={{ flex: 1, flexDirection: "row", justifyContent: "flex-end", alignItems: "center" }}>
                 {!isWeekly && <Material name='repeat-once' style={[{ fontSize: 30, color: "grey" }]} />}

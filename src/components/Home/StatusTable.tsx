@@ -6,7 +6,6 @@ import Svg, { Path } from 'react-native-svg';
 
 const DeviceStatus = () => {
     const [deviceStatus, setDeviceStatus] = useState<"undefined" | "unreachable" | "active" | "loading">("active")
-
     if (deviceStatus === "loading")
         return <ActivityIndicator color={"white"}></ActivityIndicator>
 
@@ -106,7 +105,7 @@ export default StatusTable;
 const styles = StyleSheet.create({
     container: {
         padding: 10,
-        backgroundColor: "#0284c7",        
+        backgroundColor: "#0284c7",
         shadowColor: "#000",
         shadowOffset: {
             width: 0,

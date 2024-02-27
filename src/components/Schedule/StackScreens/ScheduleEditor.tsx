@@ -25,10 +25,11 @@ import fetchSchedule from '../../api/fetchSchedule';
 import { useAppDispatch } from '../../../../redux/hooks';
 import { triggerCalenderRerender } from '../../../../redux/slice';
 import errorHandlerUI from '../../UI/errorHandlerUI';
+import calculateNextState from '../../Home/utils/calculateNextState';
 
 let removedEvents_ids: string[] = []
 let newEvents_id: string[] = []
-let thisevents: EventMoments[] = [] // as workaround to get the events because when calling it in updateOnServer the current event is not uptodate
+let thisevents: EventMoments[] = [] // as workaround to get the events when calling them in updateOnServer the current event is kinda not uptodate
 let eventsTimeConflicts = false
 type EventToEdit = { startMoment: moment.Moment | undefined, endMoment: moment.Moment | undefined, isWeekly: boolean, _id: string | undefined }
 const ScheduleEditor = ({ navigation, route }: ScheduleStackScreenProps<"ScheduleEditor">) => {
@@ -74,7 +75,10 @@ const ScheduleEditor = ({ navigation, route }: ScheduleStackScreenProps<"Schedul
         };
 
         const updateCalendar = async () => {
-            const res = await fetchSchedule(dispatch)
+            try {
+                const res = await fetchSchedule(dispatch)
+                errorHandlerUI(res)
+            } catch (error) { }
             setTimeout(() => {
                 dispatch(triggerCalenderRerender(true))
             }, 100);
@@ -105,6 +109,7 @@ const ScheduleEditor = ({ navigation, route }: ScheduleStackScreenProps<"Schedul
 
     useLayoutEffect(() => { // on mount
         removedEvents_ids = new Array()
+        newEvents_id = new Array()
         setTimeout(() => {
             const _events = getEventsFromMap(weekDayDateMoment)
             const ev = _events.map(ev => getEventMoments(ev, weekDayDateMoment)!).sort((a, b) => {
@@ -137,9 +142,7 @@ const ScheduleEditor = ({ navigation, route }: ScheduleStackScreenProps<"Schedul
         })
     }, [])
 
-    useEffect(() => {
-        thisevents = [...events]
-    }, [events])
+    useEffect(() => { thisevents = [...events]; calculateNextState() }, [events])
 
     const updateOnServer = async () => {
         if (eventsTimeConflicts) {
@@ -268,7 +271,7 @@ const ScheduleEditor = ({ navigation, route }: ScheduleStackScreenProps<"Schedul
             console.log("event was deleted while editing")
         }
         setEventToDeleteIndex(undefined)
-    }
+    })
 
     const pickerOnChange = (_event: DateTimePickerEvent, pickedDate: Date | undefined) => {
         if (Platform.OS === 'android') {
@@ -392,6 +395,8 @@ const ScheduleEditor = ({ navigation, route }: ScheduleStackScreenProps<"Schedul
                             <View>
                                 {events && events.map((event, i) => {
                                     const { startMoment, endMoment, isWeekly } = event
+                                    console.log(startMoment, endMoment)
+                                    const crossesDay = crossesDays(startMoment, endMoment)
                                     if (i == 0) eventsTimeConflicts = false
                                     let prevEndTimeConflicting = false
                                     const prevEvent = events[i - 1]
@@ -431,7 +436,7 @@ const ScheduleEditor = ({ navigation, route }: ScheduleStackScreenProps<"Schedul
                                                     </View>
                                                     <View style={styles.timeContainer}>
                                                         <Ionicons name='power' style={[styles.powerIcon, { marginRight: 5, color: "orange" }]} />
-                                                        <Text style={styles.durationText}>{!crossesDays(startMoment, endMoment) ? endMoment.format("HH:mm") : endMoment.format("HH:mm, dd")}</Text>
+                                                        <Text style={styles.durationText}>{crossesDay ? endMoment.clone().add(1, "days").format("HH:mm, dd") : endMoment.format("HH:mm")}</Text>
                                                     </View>
                                                     <View style={{ flex: 1, flexDirection: "row", justifyContent: "flex-end", alignItems: "center" }}>
                                                         {!isWeekly && <MaterialCommunityIcons name='repeat-once' style={[{ fontSize: 30, color: "grey" }]} />}
@@ -449,7 +454,6 @@ const ScheduleEditor = ({ navigation, route }: ScheduleStackScreenProps<"Schedul
                             </TouchableHighlight>
                         </View>
                     </ScrollView> || <></>
-                    // <ActivityIndicator size='large' color={theme.colors.primary} style={styles.indicator} />
                 }
                 <BottomSheetModalProvider>
                     <BottomSheetModal
