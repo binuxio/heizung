@@ -4,6 +4,7 @@ export type _Event = WeeklyEvent | SpecialEvent
 export type WeeklyEvent = {
     _id: string
     isWeekly: boolean
+    excludedDays: string[]
     start: {
         day: number;
         time: string;
@@ -16,6 +17,7 @@ export type WeeklyEvent = {
 export type SpecialEvent = {
     _id: string
     isWeekly: boolean
+    excludedDays: string[]
     start: {
         date: string;
         time: string;
@@ -27,6 +29,7 @@ export type SpecialEvent = {
 
 export type EventMoments = {
     isWeekly: boolean
+    excludedDays: string[]
     startMoment: moment.Moment
     endMoment: moment.Moment
     _id: string | undefined

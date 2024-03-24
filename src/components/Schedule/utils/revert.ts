@@ -16,7 +16,8 @@ export default function (eventMoments: EventMoments[]): _Event[] {
                     time: endTime
                 },
                 _id: eventMoment._id,
-                isWeekly: eventMoment.isWeekly
+                isWeekly: eventMoment.isWeekly,
+                excludedDays: eventMoment.excludedDays
             }
         }
 
@@ -30,7 +31,8 @@ export default function (eventMoments: EventMoments[]): _Event[] {
                 time: endTime
             },
             _id: eventMoment._id,
-            isWeekly: eventMoment.isWeekly
+            isWeekly: eventMoment.isWeekly,
+            excludedDays: eventMoment.excludedDays
         }
     })
     return events

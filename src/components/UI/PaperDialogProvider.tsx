@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { ViewStyle } from 'react-native';
-import { Dialog, Portal } from 'react-native-paper';
+import { Dialog, DialogProps, Portal } from 'react-native-paper';
 
 interface DialogContentProps {
 
@@ -14,7 +14,8 @@ interface DialogContextProps {
 
 interface DialogConfig {
     dialogContent: React.ReactNode
-    contentWrapperStyle: ViewStyle
+    contentWrapperStyle?: ViewStyle
+    dialogConfig?: Partial<DialogProps>
 }
 
 const DialogContext = React.createContext<DialogContextProps | undefined>(undefined);
@@ -45,10 +46,8 @@ const PaperDialogProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     const DialogComponent = () => {
         return <Portal>
-            <Dialog visible={isVisible}
-                onDismiss={hideDialog}
-                {...DialogConfig}>
-                <Dialog.Content style={{ backgroundColor: "transparent", padding: 0 }}>
+            <Dialog visible={isVisible} onDismiss={hideDialog} style={DialogConfig.contentWrapperStyle} {...DialogConfig.dialogConfig}>
+                <Dialog.Content>
                     <>{DialogConfig.dialogContent}</>
                 </Dialog.Content>
             </Dialog>
@@ -62,19 +61,11 @@ const PaperDialogProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
 };
 
-const useDialog = ({ }: DialogConfig) => {
+const useDialog = ({ dialogContent, contentWrapperStyle }: DialogConfig = { dialogContent: null, contentWrapperStyle: {} }) => {
     const context = React.useContext(DialogContext);
 
     React.useEffect(() => {
-        // if (context)
-        //     context.setConfig((prev) => ({
-        //         ...prev,
-        //         contentWrapperStyle: {
-        //             // your updated style properties go here
-        //             backgroundColor: 'lightblue',
-        //             // other style properties...
-        //         },
-        //     }));
+        if (context) context.setConfig({ dialogContent, contentWrapperStyle });
     }, [])
 
     if (!context) {
