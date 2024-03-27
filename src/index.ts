@@ -1,7 +1,7 @@
 import express from "express"
 import { createServer } from "http";
 import { Server, Socket } from "socket.io";
-import clientApp from "./client"
+import clientApp from "./clientApp"
 import fs from "fs"
 
 const app = express()

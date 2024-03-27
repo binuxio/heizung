@@ -1,9 +1,5 @@
-export type UpdateScheduleReq = {
-    removedEvents: string[]
-    newEvents: _Event[]
-}
-
 export type Schedule = _Event[]
+export type _Event = WeeklyEvent | SpecialEvent
 
 export type WeeklyEvent = {
     _id: string
@@ -13,7 +9,6 @@ export type WeeklyEvent = {
         time: string;
     };
     end: {
-        date: string;
         time: string;
     }
 };
@@ -26,9 +21,11 @@ export type SpecialEvent = {
         time: string;
     };
     end: {
-        date: string;
         time: string;
     }
 };
 
-export type _Event = WeeklyEvent | SpecialEvent
+export type UpdateScheduleRequest = {
+    day: number
+    newEvents: _Event[]
+}
