@@ -1,5 +1,5 @@
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { _Event } from '../components/types.schedule';
+import { _Event } from '../types/schedule.types';
 import moment from 'moment';
 
 export type RootStackParamList = {

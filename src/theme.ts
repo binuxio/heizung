@@ -1,9 +1,10 @@
 const theme = {
     colors: {
-        primary: '#0284c7',
+        primary: '#071330',
+        secondary: '#13344C',
+        background: "#13344C",
+        lightBackground: "#88BFCB",
         primaryLight: "#52c4ff",
-        secondary: '#103247',
-        background: "#d7f3fa",
         eventBackground: "rgb(198, 235, 245)",
     },
     shadow: {
@@ -19,3 +20,6 @@ const theme = {
 }
 
 export default theme
+
+const _colors = theme.colors
+export { _colors }

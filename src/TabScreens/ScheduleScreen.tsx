@@ -1,11 +1,11 @@
 import React, { useEffect, useState } from 'react'
 import { StyleSheet, Text, View } from 'react-native'
-import EventsCalendar from '../components/Schedule/StackScreens/EventsCalendar';
+import EventsCalendar from '../utils/Schedule/StackScreens/EventsCalendar';
 import theme from '../theme';
 import { StatusBar } from 'expo-status-bar';
 import { createStackNavigator } from '@react-navigation/stack';
-import ScheduleEditor from '../components/Schedule/StackScreens/ScheduleEditor';
-import { ScheduleStackParamList, ScheduleStackScreenProps } from '../components/Schedule/StackScreens/types';
+import ScheduleEditor from '../utils/Schedule/StackScreens/ScheduleEditor';
+import { ScheduleStackParamList, ScheduleStackScreenProps } from '../utils/Schedule/StackScreens/types';
 import { RootStackScreenProps } from './types';
 import { useAppDispatch } from '../../redux/hooks';
 import { setScheduleStackScreenOpen } from '../../redux/slice';

@@ -4,13 +4,13 @@ import moment from 'moment/min/moment-with-locales';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { applyLocale, displayTitleByLocale } from './src/Locale';
 import styles from './src/Style';
-import { _Event } from '../../../types.schedule';
+import { _Event } from '../../../../types/schedule.types';
 import { ProgressBar, TouchableRipple } from 'react-native-paper';
 import theme from '../../../../theme';
 import { useAppDispatch, useAppSelector } from '../../../../../redux/hooks';
 import { setIsRefreshingCalendar, triggerCalenderRerender } from '../../../../../redux/slice';
 import getEventsFromMap from '../getEventsFromMap';
-import { ScheduleStackScreenProps } from '../../../Schedule/StackScreens/types';
+import { ScheduleStackScreenProps } from '../../StackScreens/types';
 import fetchSchedule from '../../../api/fetchSchedule';
 
 interface Props {

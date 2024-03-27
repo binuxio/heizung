@@ -1,6 +1,6 @@
 import moment from "moment";
-import getEventsFromMap from "../../Schedule/utils/getEventsFromMap";
-import timeIsSameOrBefore from "../../Schedule/utils/timeIsSameOrBefore";
+import getEventsFromMap from "../../../utils/Schedule/getEventsFromMap";
+import timeIsSameOrBefore from "../../../utils/Schedule/timeIsSameOrBefore";
 
 export default function () {
     const todayMoment = moment()
@@ -13,7 +13,7 @@ export default function () {
             const time = todayEvents[i].start.time.split(":")
             const eventsTimeMoment = moment().set("hours", parseInt(time[0])).set("minutes", parseInt(time[1]))
             console.log(timeIsSameOrBefore(todayMoment, eventsTimeMoment), todayEvents[i])
-            
+
         }
     }
 }

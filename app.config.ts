@@ -2,6 +2,9 @@ import { ExpoConfig, ConfigContext } from 'expo/config';
 
 export default ({ config }: ConfigContext): ExpoConfig => ({
   ...config,
+  experiments: {
+    tsconfigPaths: true
+  },
   name: "clientapp",
   slug: "clientapp",
   version: "1.0.0",
@@ -23,7 +26,8 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     adaptiveIcon: {
       foregroundImage: "./assets/adaptive-icon.png",
       backgroundColor: "#ffffff"
-    }
+    },
+    
   },
   web: {
     favicon: "./assets/favicon.png"

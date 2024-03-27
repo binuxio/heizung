@@ -8,7 +8,7 @@ import { AntDesign, FontAwesome, Ionicons, MaterialCommunityIcons, MaterialIcons
 import theme from '../../../theme';
 import getEventMoments from '../utils/getEventMoments';
 import getEventsFromMap from '../utils/getEventsFromMap';
-import { EventMoments, _Event } from '../../types.schedule';
+import { EventMoments, _Event } from '../../../types/schedule.types';
 // import { StatusBar } from 'expo-status-bar';
 import "moment/locale/de"
 import { BottomSheetModal, BottomSheetModalProvider } from '@gorhom/bottom-sheet';
@@ -19,15 +19,15 @@ import crossesDays from '../utils/crossesDays';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { StatusBar } from 'expo-status-bar';
 import { ListItem } from '@rneui/base';
-import { useAlert } from '../../UI/AlertPaperProvider';
+import { useAlert } from '../../UI/_AlertPaperProvider';
 import updateSchedule from '../../api/updateSchedule';
 import fetchSchedule from '../../api/fetchSchedule';
 import { useAppDispatch } from '../../../../redux/hooks';
 import { triggerCalenderRerender } from '../../../../redux/slice';
-import errorHandlerUI from '../../UI/errorHandlerUI';
-import calculateNextState from '../../Home/utils/calculateNextState';
+import errorHandlerUI from '../../../components/UI/errorHandlerUI';
+import calculateNextState from '../../../components/Home/utils/calculateNextState';
 import { Path, Svg } from 'react-native-svg';
-import { useDialog } from '../../UI/PaperDialogProvider';
+import { useDialog } from '../../../components/UI/PaperDialogProvider';
 
 let removedEvents_ids: string[] = []
 let newEvents_id: string[] = []
