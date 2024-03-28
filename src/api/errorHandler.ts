@@ -1,13 +1,13 @@
 import { AxiosError } from "axios";
-import { RequestReturn } from "./types";
+import { _Response } from "./types";
 
-export default function (error: any): RequestReturn {
+export default function (error: any): _Response {
     if (error instanceof AxiosError) {
         if (error.response) {
             /*
-             * The request was made and the server responded with a
-             * status code that falls out of the range of 2xx
-             */
+            * The request was made and the server responded with a
+            * status code that falls out of the range of 2xx
+            */
             return { status: error.response.status, error: error.response.data };
         } else if (error.request) {
             /*
@@ -15,7 +15,7 @@ export default function (error: any): RequestReturn {
              * is an instance of XMLHttpRequest in the browser and an instance
              * of http.ClientRequest in Node.js
              */
-            return { status: error.code, error: error.message };
+            return { status: error.code, error: error.request._response };
         } else {
             // Something happened in setting up the request and triggered an Error
             return { status: error.status || 500, error: error.code }

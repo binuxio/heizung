@@ -7,5 +7,4 @@ export type EventItemProps = {
     setSelectedEventID: (id: string | undefined) => void
     selectedEventID: string | undefined
     setEventToDeleteID: (id: string | undefined) => void
-    eventToDeleteID: string | undefined
 }

@@ -3,6 +3,7 @@ const theme = {
         primary: '#071330',
         secondary: '#13344C',
         background: "#13344C",
+        backgroundEventItem: "#88BFCB",
         lightBackground: "#88BFCB",
         primaryLight: "#52c4ff",
         eventBackground: "rgb(198, 235, 245)",

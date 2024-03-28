@@ -10,23 +10,6 @@ import { _colors } from '@/theme'
 let prevEventMoment: undefined | EventMoment = undefined
 export let eventsTimeConflicts = false
 export default class EventItem extends React.Component<EventItemProps, { animatedValue: Animated.Value }> {
-    // shouldComponentUpdate(nextProps: EventItemProps) {
-    //     const { event, selectedEventID } = this.props
-
-    //     function updateEventSelection() {
-    //         return nextProps.selectedEventID !== event.id
-    //              // check if the event was the previous selected one to rerender
-    //     }
-
-    //     function updateModifiedEvent() {
-    //         console.log(event.start.time, Object.is(event, nextProps.event))
-    //         return Object.is(event, nextProps.event)
-    //     }
-
-    //     return updateEventSelection() || updateModifiedEvent()
-    //     return true
-    // }
-
     constructor(props: any) {
         super(props);
         this.state = {
@@ -34,7 +17,7 @@ export default class EventItem extends React.Component<EventItemProps, { animate
         }
     }
 
-    startAnimation = () => {
+    startDeleteAnimation = () => {
         Animated.timing(this.state.animatedValue, {
             toValue: 0,
             duration: 300,
@@ -45,28 +28,25 @@ export default class EventItem extends React.Component<EventItemProps, { animate
     };
 
     render() {
-        const { event, i, eventToDeleteID, selectedEventID, setSelectedEventID, setEventToDeleteID, eventsLength } = this.props;
+        const { event, i, selectedEventID, setSelectedEventID, eventsLength } = this.props;
         const { animatedValue } = this.state;
         const eventMoment = getEventMoment(event)
         const { startMoment, endMoment, id } = eventMoment;
         const crossesDay = endMoment.day() > startMoment.day();
 
+        if (i == 0) eventsTimeConflicts = false
         let prevEndTimeConflicting = false;
-        if (prevEventMoment) {
-            prevEndTimeConflicting = prevEventMoment.endMoment.isSameOrAfter(startMoment);
-        }
-        prevEventMoment = (i !== eventsLength) ? eventMoment : undefined;
+        if (prevEventMoment) prevEndTimeConflicting = prevEventMoment.endMoment.isSameOrAfter(startMoment)
+        prevEventMoment = (i !== eventsLength - 1) ? eventMoment : undefined;
+        if (!eventsTimeConflicts)
+            eventsTimeConflicts = prevEndTimeConflicting
+
         console.log("rerender Eventitem", event.start.time)
-
-
         return (
-            <Animated.View key={i} style={{
+            <Animated.View style={{
                 overflow: "hidden", borderRadius: 7,
-                opacity: eventToDeleteID !== id ? 1 : 0,
                 marginBottom: animatedValue.interpolate({ inputRange: [0, 1], outputRange: [0, 10] }),
                 height: animatedValue.interpolate({ inputRange: [0, 1], outputRange: [0, 45] })
-                // marginBottom: 10,
-                // height: 45
             }}>
                 <ListItem.Swipeable
                     leftWidth={0}
@@ -78,8 +58,7 @@ export default class EventItem extends React.Component<EventItemProps, { animate
                             <TouchableOpacity
                                 onPress={() => {
                                     reset();
-                                    setEventToDeleteID(event.id)
-                                    // this.startAnimation()
+                                    this.startDeleteAnimation()
                                 }}
                                 activeOpacity={.6}
                                 style={{ backgroundColor: "red", flex: 1, justifyContent: "center", alignItems: "center" }}
@@ -89,7 +68,9 @@ export default class EventItem extends React.Component<EventItemProps, { animate
                         </View>
                     )}
                 >
-                    <TouchableHighlight underlayColor={"rgba(141, 199, 217, .7)"} onPress={() => setSelectedEventID(id)}
+                    <TouchableHighlight underlayColor={"rgba(141, 199, 217, .7)"} onPress={() => {
+                        setSelectedEventID(event.id)
+                    }}
                         style={{ flex: 1, backgroundColor: selectedEventID == event.id ? _colors.lightBackground : _colors.background }}>
                         <View style={[styles.eventContainer, {}]}>
                             <View style={{ flexDirection: "row", gap: 20 }}>

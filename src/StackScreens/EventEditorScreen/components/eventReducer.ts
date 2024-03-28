@@ -1,27 +1,28 @@
 import { EventMoment, _Event } from "@/types/schedule.types"
+import sortEvents from "@/utils/Schedule/sortEvents";
 
 type EventAction =
     | { type: "CREATE"; payload: _Event }
-    | { type: "INIT"; payload: _Event[] }
     | { type: "UPDATE"; payload: _Event }
-    | { type: "DELETE"; payload: string };
+    | { type: "DELETE"; payload: string }
+    | { type: "SORT"; payload: _Event[] };
 
 export default function eventReducer(state: { events: _Event[] }, action: EventAction): { events: _Event[] } {
     const { type, payload } = action;
     switch (type) {
         case "UPDATE":
-            const updatedEvents = state.events.map((event) => (event._id === payload._id ? payload : event));
+            const updatedEvents = sortEvents(state.events.map((event) => (event.id === payload.id ? payload : event)));
             return { events: updatedEvents };
         case "CREATE":
-            return { events: [...state.events, payload] };
-        case "INIT":
-            return { events: payload };
+            const newEventList = [...state.events]
+            newEventList.unshift(payload)
+            return { events: newEventList };
         case "DELETE":
-            const updatedEventss = [...state.events]
-            return { events: updatedEventss.splice(1, 1) };
-
-        // const filteredEvents = state.events.filter(e => e._id === payload)
-        // return { events: filteredEvents };
+            console.log(payload)
+            const filteredEvents = [...state.events]
+            return { events: filteredEvents.filter(e => e.id !== payload) };
+        case "SORT":
+            return { events: sortEvents([...payload]) }
         default:
             return state;
     }

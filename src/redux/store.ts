@@ -1,8 +1,10 @@
 import { configureStore } from '@reduxjs/toolkit'
-import { appState } from './slice'
+import { appData } from './slice.appData'
+import appState from './slice.appState'
 
 export const store = configureStore({
     reducer: {
+        appData: appData.reducer,
         appState: appState.reducer
     },
 })

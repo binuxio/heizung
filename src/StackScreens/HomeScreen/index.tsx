@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, TouchableOpacity, Text, StyleSheet, ScrollView, StatusBar, Platform, Alert, ImageBackground, Image } from 'react-native';
 import StatusTable from '../../components/Home/StatusTable';
 import theme from '../../theme';
@@ -8,6 +8,9 @@ import { RootStackScreenProps } from '../types';
 import { BlurView } from 'expo-blur';
 import { Ionicons } from '@expo/vector-icons';
 import Zeitplan from './components/Zeitplan';
+import fetchSchedule from '@/api/schedule/fetchSchedule';
+import { useAppDispatch } from '@/redux/hooks';
+import errorHandlerUI from '@/components/UI/errorHandlerUI';
 
 const powerStateColor = {
     on: "green",
@@ -15,6 +18,15 @@ const powerStateColor = {
 }
 
 export default function HomeScreen(stackProps: RootStackScreenProps<"HomeScreen">) {
+    const dispatch = useAppDispatch()
+
+
+    useEffect(() => {
+        (async () => {
+            const res = await fetchSchedule(dispatch)
+            errorHandlerUI(res)
+        })()
+    }, [])
 
     return <View style={{ flex: 1 }}>
         <StatusBar backgroundColor="transparent" translucent barStyle={"dark-content"} />

@@ -3,10 +3,12 @@ import { _Response } from "@/api/types";
 import { NetInfoConnectedDetails, NetInfoState } from "@react-native-community/netinfo";
 
 export default function (res: _Response, netinfo: NetInfoState | null = null) {
+    if (res.status === 200) return
+
     if (netinfo) {
         if (!netinfo.isInternetReachable) res.status = "ERR_NETWORK"
     }
-    
+
     if (res.status != 200) {
         console.log(res)
         if (res.status == 404)

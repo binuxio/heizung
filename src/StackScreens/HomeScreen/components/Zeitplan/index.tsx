@@ -1,12 +1,34 @@
 import * as React from 'react'
-import { Text, View } from 'react-native'
+import { ActivityIndicator, Button, Pressable, Text, View } from 'react-native'
 import { Switch } from 'react-native-paper';
-import theme from '@/theme';
+import theme, { _colors } from '@/theme';
 import EventsTable from './EventsTable';
 import { RootStackScreenProps } from '@/StackScreens/types';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { TouchableHighlight } from 'react-native-gesture-handler';
+import fetchSchedule from '@/api/schedule/fetchSchedule';
+import { useAppDispatch, useAppSelector } from '@/redux/hooks';
+import errorHandlerUI from '@/components/UI/errorHandlerUI';
 
 const Zeitplan: React.FC<{ stackProps: Partial<RootStackScreenProps<"HomeScreen">> }> = ({ stackProps: { navigation } }) => {
     const [timePlanActive, setTimePlanActive] = React.useState(true);
+    const [isFetching, setIsFetching] = React.useState(false)
+    const isFetchingSchedule = useAppSelector(state => state.appState.isFetchingSchedule)
+    const dispatch = useAppDispatch()
+
+    const refetchSchedule = async () => {
+        const res = await fetchSchedule(dispatch)
+        errorHandlerUI(res)
+    }
+
+    React.useEffect(() => {
+        if (isFetchingSchedule) setIsFetching(true)
+        else {
+            setTimeout(() => {
+                setIsFetching(false)
+            }, 1000);
+        }
+    }, [isFetchingSchedule])
 
     return (
         <View style={{ padding: 16, flex: 1 }}>
@@ -17,10 +39,18 @@ const Zeitplan: React.FC<{ stackProps: Partial<RootStackScreenProps<"HomeScreen"
                         {timePlanActive ? "Aktiv" : "Inaktiv"}
                     </Text>
                 </View>
-                <Switch value={timePlanActive} onValueChange={() => setTimePlanActive(e => !e)} theme={{ colors: { primary: "green" } }} />
-            </View>
+                <View style={{ flexDirection: "row", alignItems: "center", gap: 15 }}>
+                    {isFetching ?
+                        <ActivityIndicator size={25} color={_colors.primary} /> :
+                        <Pressable style={{}} onPress={() => refetchSchedule()} >
+                            <MaterialCommunityIcons name='refresh' size={25} color={"gray"} />
+                        </Pressable>
+                    }
+                    <Switch value={timePlanActive} onValueChange={() => setTimePlanActive(e => !e)} theme={{ colors: { primary: "green" } }} />
+                </View>
+            </View >
             <EventsTable stackProps={{ navigation }} />
-        </View>
+        </View >
     )
 }
 

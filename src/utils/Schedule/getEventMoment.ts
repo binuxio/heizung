@@ -5,7 +5,7 @@ export default function (event: _Event): EventMoment {
     const startMoment = getMoment(event.start.time)
     const endMoment = getMoment(event.end.time)
     if (endMoment.isSameOrBefore(startMoment)) endMoment.set("days", startMoment.day() + 1)
-    return { startMoment, endMoment, _id: event._id }
+    return { startMoment, endMoment, id: event.id }
 }
 
 const getMoment = (time: string) => {

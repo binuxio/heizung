@@ -1,5 +1,5 @@
 import { _Event } from '@/types/schedule.types'
-import React, { memo, useEffect, useLayoutEffect, useReducer, useState } from 'react'
+import React, { memo, useCallback, useEffect, useLayoutEffect, useReducer, useState } from 'react'
 import { Alert, ScrollView, Text, TouchableHighlight, TouchableOpacity, View } from 'react-native'
 import { RootStackScreenProps } from '../types'
 import theme, { _colors } from '@/theme'
@@ -8,10 +8,10 @@ import moment from 'moment'
 import "moment/locale/de"
 import TimePicker from './components/TimePicker'
 import eventReducer from './components/eventReducer'
-import EventItem from './components/EventItem'
+import EventItem, { eventsTimeConflicts } from './components/EventItem'
 import sortEvents from '@/utils/Schedule/sortEvents'
 import { useAlert } from '@/components/UI/_AlertPaperProvider'
-import sendUpdatedEvents from '@/api/sendUpdatedEvents'
+import sendUpdatedEvents from '@/api/schedule/sendUpdatedEvents'
 import errorHandlerUI from '@/components/UI/errorHandlerUI'
 
 export default function EventEditorScreen({ navigation, route }: RootStackScreenProps<"EventEditorScreen">) {
@@ -21,9 +21,9 @@ export default function EventEditorScreen({ navigation, route }: RootStackScreen
   const [loading, setLoading] = useState(true)
   const [{ events }, dispatch] = useReducer<typeof eventReducer>(eventReducer, { events: [..._events] })
   const selectedEvent = events.find(event => event.id === selectedEventID)
+
   const [changesMade, setChangesMade] = useState(false)
   const { showAlert } = useAlert()
-
 
   useEffect(() => {
     const onPageLeave = (ev: any) => {
@@ -104,26 +104,21 @@ export default function EventEditorScreen({ navigation, route }: RootStackScreen
 
   useEffect(() => {
     setTimeout(() => {
-      // setEvents([...state.events])
       setLoading(false)
     }, 80)
   }, [])
 
   const updateOnServer = async () => {
-    if (true) {
+    if (eventsTimeConflicts) {
       Alert.alert("Der Zeitplan enthält Fehler", "Achte darauf dass keine Zeiten sich überlappen")
       return
     }
-    return
     const res = await sendUpdatedEvents(events, day)
-    if (res.status != 200) {
-      errorHandlerUI(res)
-      return
-    }
+    errorHandlerUI(res)
     setChangesMade(false)
   }
 
-  const updateEvent = (newTime: string, updatedTime: "start" | "end") => {
+  const updateEventsTime = (newTime: string, updatedTime: "start" | "end") => {
     const updatedEvent = { ...selectedEvent } as _Event
 
     if (updatedTime === "start")
@@ -137,16 +132,13 @@ export default function EventEditorScreen({ navigation, route }: RootStackScreen
 
   const createEvent = () => {
     const id = new Date().getTime().toString()
-    dispatch({ type: "CREATE", payload: { id: id, start: { time: "00:00", day }, end: { time: "00:00" } } })
+    dispatch({ type: "CREATE", payload: { id, start: { time: "00:00", day }, end: { time: "00:00" } } })
     setSelectedEventID(id)
     setChangesMade(true)
   }
 
   const deleteEvent = () => {
-    console.log("requested deletion")
     dispatch({ type: "DELETE", payload: eventToDeleteID! })
-
-    setEventToDeleteID(undefined)
     setChangesMade(true)
   }
 
@@ -162,26 +154,25 @@ export default function EventEditorScreen({ navigation, route }: RootStackScreen
           </TouchableHighlight>
           <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", backgroundColor: _colors.background, padding: 16 }}>
             <View style={{}}>
-              <TimePicker onChange={(h, m) => updateEvent(`${h}:${m}`, "start")} value={selectedEvent && selectedEvent.start.time} />
+              <TimePicker onChange={(h, m) => updateEventsTime(`${h}:${m}`, "start")} value={selectedEvent && selectedEvent.start.time} />
               <View style={{ flexDirection: "row", justifyContent: "center" }}>
                 <Text style={{ backgroundColor: "green", color: "white", fontSize: 14, borderRadius: 5, paddingHorizontal: 5, paddingVertical: 2 }}>Einschalten</Text>
               </View>
             </View>
             <View style={{}}>
-              <TimePicker onChange={(h, m) => updateEvent(`${h}:${m}`, "end")} value={selectedEvent && selectedEvent.end.time} />
+              <TimePicker onChange={(h, m) => updateEventsTime(`${h}:${m}`, "end")} value={selectedEvent && selectedEvent.end.time} />
               <View style={{ flexDirection: "row", justifyContent: "center" }}>
                 <Text style={{ backgroundColor: "orange", color: "white", fontSize: 14, borderRadius: 5, paddingHorizontal: 5, paddingVertical: 2 }}>Auschalten</Text>
               </View>
             </View>
           </View>
-          <ScrollView>
+          <ScrollView >
             <View style={{ padding: 16 }}>
               {events.map((event, i) => {
 
-                return <EventItem key={i} eventsLength={events.length} event={event} i={i}
+                return <EventItem key={event.id} eventsLength={events.length} event={event} i={i}
                   setEventToDeleteID={setEventToDeleteID}
                   setSelectedEventID={setSelectedEventID}
-                  eventToDeleteID={eventToDeleteID}
                   selectedEventID={selectedEventID} />
               })}
             </View>
