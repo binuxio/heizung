@@ -3,13 +3,17 @@ import { createServer } from "http";
 import { Server, Socket } from "socket.io";
 import clientApp from "./clientApp"
 import fs from "fs"
+import moment from "moment";
+import { _socket, logdateFormat, setSocket } from "./dotenv";
+import setDeviceConnected from "./utils/db/setDeviceConnected";
+import { initEvents } from "./device/events";
 
 const app = express()
 app.use(express.json());
 const httpServer = createServer(app);
 const PORT = process.env.PORT || 6500;
 
-const io = new Server(httpServer, {
+export const io = new Server(httpServer, {
     cors: {
         methods: "*",
         origin: "*",
@@ -21,16 +25,20 @@ const io = new Server(httpServer, {
     // maxHttpBufferSize: 1024,
     // path: "/"
 })
-let csocket: Socket | undefined = undefined
 
-io.on('connection', (socket: Socket) => {
-    if (!csocket) csocket = socket
-    console.log(new Date(), 'Raspberry connected');
+setDeviceConnected(false)
 
+io.on('connection', async (socket: Socket) => {
+    console.log(moment().format(logdateFormat), 'Device connected');
     socket.on('disconnect', () => {
-        csocket = undefined
-        console.log(new Date(), 'Raspberry disconnected');
+        setSocket(undefined)
+        setDeviceConnected(false)
+        console.log(moment().format(logdateFormat), 'Device disconnected');
     });
+    setSocket(socket)
+    setDeviceConnected(true)
+
+    initEvents(socket)
 });
 
 app.use("/", clientApp)

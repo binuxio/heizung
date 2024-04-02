@@ -1,10 +1,13 @@
 {
   "compilerOptions": {
     /* Visit https://aka.ms/tsconfig to read more about this file */
-    "baseUrl": "./src",
+    "baseUrl": ".",
     "paths": {
       "@/*": [
-        "*"
+        "./src/*"
+      ],
+      "@data/*": [
+        "./db/*"
       ]
     },
     /* Projects */

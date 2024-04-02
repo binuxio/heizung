@@ -1,0 +1,10 @@
+{
+  "device_connected": true,
+  "schedule_version_id": 63,
+  "schedule_enabled": true,
+  "relais_state": "forced_on",
+  "relais_forced_on_until": {
+    "time": "23:20",
+    "day": 3
+  }
+}

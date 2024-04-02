@@ -1,9 +1,12 @@
 // client.ts
 import express, { ErrorRequestHandler } from 'express';
-import { UpdateScheduleRequest, _Event } from '../types.schedule';
-import readSchedule from './utils/readSchedule';
-import writeSchedule from './utils/writeSchedule';
-import readState from './utils/readState';
+import { Schedule, UpdateScheduleRequest, _Event } from '@/types/schedule.types';
+import writeJsonFile from '@/utils/db/writeJsonFile';
+import { scheduleJsonPath, stateJsonPath } from '@/dotenv';
+import readJsonFile from '@/utils/db/readJsonFile';
+import { updateScheduleVersionId } from '@/utils/scheduleVersionId';
+import sendScheduleToDevice from '@/utils/device/sendScheduleToDevice';
+import sendCommandToDevice from '@/utils/device/sendCommandToDevice';
 
 const app = express();
 
@@ -19,47 +22,64 @@ const app = express();
 //     }
 // });
 
-app.get("/getState", async (req, res, next) => {
-    console.log("requested state");
+app.use("*", (req, _, next) => {
+    console.log(`${req.method} ${req.originalUrl}`);
+    next()
+})
+
+app.get("/state", async (req, res, next) => {
     try {
-        const data = await readState();
+        const data = await readJsonFile<_State>(stateJsonPath);
         res.json(data);
     } catch (err) {
         next(err);
     }
 });
 
-app.post("/updateState", async (req, res, next) => {
-    console.log("update state")
+app.post("/update-state", async (req, res, next) => {
     try {
         const newState = req.body;
-        await writeSchedule(newState);
+        await writeJsonFile(stateJsonPath, newState);
         res.sendStatus(200);
     } catch (err) {
         next(err);
     }
 });
 
-app.get("/getSchedule", async (req, res, next) => {
-    console.log("requested schedule");
+app.post("/toggle-schedule", async (req, res, next) => {
     try {
-        const data = await readSchedule();
+        const { schedule_enabled } = req.body;
+        const state = await readJsonFile<_State>(stateJsonPath);
+        state.schedule_enabled = schedule_enabled
+        await writeJsonFile(stateJsonPath, state);
+        res.sendStatus(200);
+        if (schedule_enabled === true)
+            sendCommandToDevice("enable-schedule")
+        else if (schedule_enabled === false)
+            sendCommandToDevice("disable-schedule")
+    } catch (err) {
+        next(err);
+    }
+})
+
+app.get("/schedule", async (req, res, next) => {
+    try {
+        const data = await readJsonFile<Schedule>(scheduleJsonPath)
         res.json(data);
     } catch (err) {
         next(err);
     }
 });
 
-app.post('/updateSchedule', async (req, res, next) => {
-    console.log("update schedule")
+app.post('/update-schedule', async (req, res, next) => {
     try {
-        const body: UpdateScheduleRequest = req.body;
-        const schedule = await readSchedule();
-        
-        let updatedSchedule = schedule.filter(event => !body.removedEvents.includes(event._id));
-        updatedSchedule.push(...body.newEvents)
-        await writeSchedule(updatedSchedule);
+        const { day, newEvents }: UpdateScheduleRequest = req.body;
+        let schedule = await readJsonFile<Schedule>(scheduleJsonPath)
+        schedule[day] = newEvents
+        await writeJsonFile(scheduleJsonPath, schedule);
         res.sendStatus(200);
+        await updateScheduleVersionId()
+        sendScheduleToDevice()
     } catch (err) {
         next(err);
     }
