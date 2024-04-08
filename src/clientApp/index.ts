@@ -1,26 +1,13 @@
-// client.ts
 import express, { ErrorRequestHandler } from 'express';
 import { Schedule, UpdateScheduleRequest, _Event } from '@/types/schedule.types';
 import writeJsonFile from '@/utils/db/writeJsonFile';
 import { scheduleJsonPath, stateJsonPath } from '@/dotenv';
 import readJsonFile from '@/utils/db/readJsonFile';
-import { updateScheduleVersionId } from '@/utils/scheduleVersionId';
-import sendScheduleToDevice from '@/utils/device/sendScheduleToDevice';
 import sendCommandToDevice from '@/utils/device/sendCommandToDevice';
+import delete_event from '@/schedule_server/utils/events/delete_event';
+import schedule_event from '@/schedule_server/utils/events/schedule_event';
 
 const app = express();
-
-// app.post("/get-status", (req, res) => {
-//     console.log(new Date(), "getting status")
-//     if (csocket) {
-//         csocket.emit("get-status", (data) => {
-//             res.send(data)
-//         })
-//     } else {
-//         console.log("Raspberry not connected")
-//         res.send({ status: "unreachable" })
-//     }
-// });
 
 app.use("*", (req, _, next) => {
     console.log(`${req.method} ${req.originalUrl}`);
@@ -73,17 +60,23 @@ app.get("/schedule", async (req, res, next) => {
 
 app.post('/update-schedule', async (req, res, next) => {
     try {
-        const { day, newEvents }: UpdateScheduleRequest = req.body;
+        const { day, newEvents, deletedEventsId }: UpdateScheduleRequest = req.body;
         let schedule = await readJsonFile<Schedule>(scheduleJsonPath)
         schedule[day] = newEvents
         await writeJsonFile(scheduleJsonPath, schedule);
+        // await updateScheduleVersionId()
+        console.log("deleted Events:", deletedEventsId)
+        delete_event(deletedEventsId)
+        schedule_event(newEvents)
         res.sendStatus(200);
-        await updateScheduleVersionId()
-        sendScheduleToDevice()
     } catch (err) {
         next(err);
     }
 });
+
+// TODO: create endpoints to take changes on the schedule
+app.post
+
 
 const errorHandler: ErrorRequestHandler = (err, req, res, next) => {
     const error = {

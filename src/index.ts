@@ -7,6 +7,7 @@ import moment from "moment";
 import { _socket, logdateFormat, setSocket } from "./dotenv";
 import setDeviceConnected from "./utils/db/setDeviceConnected";
 import { initEvents } from "./device/events";
+import { start_schedule_server } from "./schedule_server";
 
 const app = express()
 app.use(express.json());
@@ -26,7 +27,9 @@ export const io = new Server(httpServer, {
     // path: "/"
 })
 
+
 setDeviceConnected(false)
+start_schedule_server()
 
 io.on('connection', async (socket: Socket) => {
     console.log(moment().format(logdateFormat), 'Device connected');
