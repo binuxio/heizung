@@ -6,7 +6,7 @@ import { PaperProvider } from 'react-native-paper';
 import { NavigationContainer } from '@react-navigation/native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { Provider as ReduxProvider } from 'react-redux';
-import { store } from './src/redux/store';
+import { store } from './src/storage/redux/store';
 import { _AlertPaperProvider } from './src/components/UI/_AlertPaperProvider';
 import { PaperDialogProvider } from './src/components/UI/PaperDialogProvider';
 

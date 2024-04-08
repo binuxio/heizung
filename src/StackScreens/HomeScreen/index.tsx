@@ -1,55 +1,108 @@
-import React, { useEffect, useState } from 'react';
+import React, { memo, useEffect, useState } from 'react';
 import { View, TouchableOpacity, Text, StyleSheet, ScrollView, StatusBar, Platform, Alert, ImageBackground, Image } from 'react-native';
 import StatusTable from '../../components/Home/StatusTable';
-import theme from '../../theme';
-import { StackScreenProps, createStackNavigator } from '@react-navigation/stack';
+import { _colors } from '../../theme';
 import { RootStackScreenProps } from '../types';
-// import { BlurView } from '@react-native-community/blur';
-import { BlurView } from 'expo-blur';
-import { Ionicons } from '@expo/vector-icons';
+import { FontAwesome5, Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import Zeitplan from './components/Zeitplan';
 import fetchSchedule from '@/api/schedule/fetchSchedule';
-import { useAppDispatch } from '@/redux/hooks';
+import { useAppDispatch, useAppSelector } from '@/storage/redux/hooks';
 import errorHandlerUI from '@/components/UI/errorHandlerUI';
-
-const powerStateColor = {
-    on: "green",
-    off: "orange",
-}
+import fetchDeviceState from '@/api/device/fetchDeviceState';
+import { Path, Svg } from 'react-native-svg';
+import getEventMoment from '@/utils/Schedule/getEventMoment';
+import moment from 'moment';
 
 export default function HomeScreen(stackProps: RootStackScreenProps<"HomeScreen">) {
     const dispatch = useAppDispatch()
-
+    const { device_connected, relais_state, relais_forced_on_until } = useAppSelector(state => state.appData.deviceState)
 
     useEffect(() => {
         (async () => {
             const res = await fetchSchedule(dispatch)
             errorHandlerUI(res)
+
+            const res2 = await fetchDeviceState(dispatch)
+            errorHandlerUI(res2)
         })()
     }, [])
+
+    const getNextEvent = () => {
+        if (relais_forced_on_until) {
+            const day = relais_forced_on_until.day
+            const hour = parseInt(relais_forced_on_until.time.split(":")[0])
+            const minute = parseInt(relais_forced_on_until.time.split(":")[1])
+
+            return moment().set("day", day).set("hour", hour).set("minutes", minute).format("HH:mm, dd")
+        }
+    }
+
+    const RelaisState = () => {
+        const Container = ({ children }: any) => <View style={{ alignItems: "center", gap: 15 }}>
+            {children}
+        </View>
+
+
+        switch (relais_state) {
+            case "on":
+                return <Container>
+                    <Svg fill={_colors.powerOn} width="50px" height="50px" viewBox="0 0 32 22">
+                        <Path d="M7.071 15.386c-0.749-0.769-1.424-1.618-2.008-2.53l-0.038-0.064c-0.848-1.685-1.345-3.672-1.345-5.775 0-0.925 0.096-1.828 0.279-2.698l-0.015 0.085c0.005-0.031 0.007-0.067 0.007-0.103 0-0.414-0.336-0.75-0.75-0.75-0.385 0-0.702 0.29-0.745 0.664l-0 0.003c-0.176 0.847-0.277 1.821-0.277 2.818 0 2.375 0.573 4.615 1.588 6.592l-0.038-0.081c0.678 1.071 1.414 2.002 2.235 2.849l-0.004-0.005c0.611 0.642 1.186 1.335 1.712 2.066l0.040 0.058c1.047 1.61 1.669 3.579 1.669 5.694 0 1.13-0.178 2.219-0.507 3.24l0.021-0.075c-0.021 0.067-0.034 0.143-0.034 0.223 0 0.335 0.219 0.618 0.522 0.715l0.005 0.001c0.067 0.020 0.143 0.033 0.222 0.033h0c0 0 0.001 0 0.001 0 0.334 0 0.618-0.219 0.713-0.522l0.001-0.005c0.36-1.085 0.567-2.334 0.567-3.631 0-2.423-0.724-4.678-1.967-6.559l0.028 0.044c-0.608-0.851-1.226-1.597-1.891-2.298l0.009 0.009zM16.526 15.446c-0.906-0.931-1.723-1.959-2.43-3.063l-0.046-0.077c-1.031-2.043-1.635-4.453-1.635-7.004 0-1.117 0.116-2.207 0.336-3.258l-0.018 0.103c0.003-0.024 0.004-0.052 0.004-0.081 0-0.414-0.336-0.75-0.75-0.75-0.377 0-0.689 0.278-0.742 0.641l-0 0.004c-0.211 1.010-0.331 2.171-0.331 3.36 0 2.823 0.68 5.487 1.885 7.837l-0.045-0.097c0.809 1.277 1.687 2.386 2.666 3.397l-0.005-0.005c0.737 0.775 1.43 1.61 2.065 2.491l0.048 0.070c1.271 1.956 2.026 4.348 2.026 6.916 0 1.373-0.216 2.696-0.616 3.936l0.025-0.091c-0.021 0.066-0.034 0.143-0.034 0.222 0 0.335 0.219 0.619 0.522 0.716l0.005 0.001c0.067 0.021 0.143 0.033 0.222 0.033h0c0 0 0.001 0 0.001 0 0.335 0 0.618-0.219 0.714-0.522l0.001-0.005c0.427-1.288 0.673-2.771 0.673-4.312 0-2.877-0.858-5.554-2.332-7.788l0.033 0.053c-0.725-1.013-1.461-1.903-2.254-2.739l0.010 0.011zM27.826 17.874c-0.608-0.85-1.225-1.596-1.89-2.297l0.009 0.009c-0.749-0.77-1.424-1.62-2.009-2.533l-0.038-0.064c-0.849-1.684-1.346-3.67-1.346-5.773 0-0.925 0.096-1.827 0.279-2.698l-0.015 0.085c0.004-0.028 0.006-0.061 0.006-0.094 0-0.414-0.336-0.75-0.75-0.75-0.381 0-0.696 0.284-0.744 0.652l-0 0.004c-0.177 0.847-0.278 1.821-0.278 2.819 0 2.374 0.573 4.615 1.589 6.59l-0.038-0.081c0.678 1.073 1.414 2.005 2.237 2.853l-0.004-0.004c0.611 0.642 1.185 1.333 1.71 2.063l0.040 0.058c1.046 1.609 1.669 3.578 1.669 5.692 0 1.131-0.178 2.22-0.508 3.242l0.021-0.075c-0.021 0.066-0.034 0.143-0.034 0.222 0 0.335 0.219 0.619 0.522 0.716l0.005 0.001c0.065 0.021 0.14 0.033 0.218 0.033 0.002 0 0.003 0 0.005 0h-0c0 0 0.001 0 0.001 0 0.335 0 0.618-0.219 0.714-0.522l0.001-0.005c0.359-1.084 0.566-2.332 0.566-3.629 0-2.424-0.724-4.679-1.966-6.561l0.028 0.045z" />
+                    </Svg>
+                    <Text style={{ color: "white", backgroundColor: _colors.powerOn, borderRadius: 5, paddingHorizontal: 5, paddingVertical: 1, lineHeight: 14, fontWeight: "500", fontSize: 12, textAlign: "center" }}>Heizung ein</Text>
+                </Container>
+            case "forced_on":
+                return <Container>
+                    <Svg fill={_colors.powerOn} width="50px" height="50px" viewBox="0 0 32 22">
+                        <Path d="M7.071 15.386c-0.749-0.769-1.424-1.618-2.008-2.53l-0.038-0.064c-0.848-1.685-1.345-3.672-1.345-5.775 0-0.925 0.096-1.828 0.279-2.698l-0.015 0.085c0.005-0.031 0.007-0.067 0.007-0.103 0-0.414-0.336-0.75-0.75-0.75-0.385 0-0.702 0.29-0.745 0.664l-0 0.003c-0.176 0.847-0.277 1.821-0.277 2.818 0 2.375 0.573 4.615 1.588 6.592l-0.038-0.081c0.678 1.071 1.414 2.002 2.235 2.849l-0.004-0.005c0.611 0.642 1.186 1.335 1.712 2.066l0.040 0.058c1.047 1.61 1.669 3.579 1.669 5.694 0 1.13-0.178 2.219-0.507 3.24l0.021-0.075c-0.021 0.067-0.034 0.143-0.034 0.223 0 0.335 0.219 0.618 0.522 0.715l0.005 0.001c0.067 0.020 0.143 0.033 0.222 0.033h0c0 0 0.001 0 0.001 0 0.334 0 0.618-0.219 0.713-0.522l0.001-0.005c0.36-1.085 0.567-2.334 0.567-3.631 0-2.423-0.724-4.678-1.967-6.559l0.028 0.044c-0.608-0.851-1.226-1.597-1.891-2.298l0.009 0.009zM16.526 15.446c-0.906-0.931-1.723-1.959-2.43-3.063l-0.046-0.077c-1.031-2.043-1.635-4.453-1.635-7.004 0-1.117 0.116-2.207 0.336-3.258l-0.018 0.103c0.003-0.024 0.004-0.052 0.004-0.081 0-0.414-0.336-0.75-0.75-0.75-0.377 0-0.689 0.278-0.742 0.641l-0 0.004c-0.211 1.010-0.331 2.171-0.331 3.36 0 2.823 0.68 5.487 1.885 7.837l-0.045-0.097c0.809 1.277 1.687 2.386 2.666 3.397l-0.005-0.005c0.737 0.775 1.43 1.61 2.065 2.491l0.048 0.070c1.271 1.956 2.026 4.348 2.026 6.916 0 1.373-0.216 2.696-0.616 3.936l0.025-0.091c-0.021 0.066-0.034 0.143-0.034 0.222 0 0.335 0.219 0.619 0.522 0.716l0.005 0.001c0.067 0.021 0.143 0.033 0.222 0.033h0c0 0 0.001 0 0.001 0 0.335 0 0.618-0.219 0.714-0.522l0.001-0.005c0.427-1.288 0.673-2.771 0.673-4.312 0-2.877-0.858-5.554-2.332-7.788l0.033 0.053c-0.725-1.013-1.461-1.903-2.254-2.739l0.010 0.011zM27.826 17.874c-0.608-0.85-1.225-1.596-1.89-2.297l0.009 0.009c-0.749-0.77-1.424-1.62-2.009-2.533l-0.038-0.064c-0.849-1.684-1.346-3.67-1.346-5.773 0-0.925 0.096-1.827 0.279-2.698l-0.015 0.085c0.004-0.028 0.006-0.061 0.006-0.094 0-0.414-0.336-0.75-0.75-0.75-0.381 0-0.696 0.284-0.744 0.652l-0 0.004c-0.177 0.847-0.278 1.821-0.278 2.819 0 2.374 0.573 4.615 1.589 6.59l-0.038-0.081c0.678 1.073 1.414 2.005 2.237 2.853l-0.004-0.004c0.611 0.642 1.185 1.333 1.71 2.063l0.040 0.058c1.046 1.609 1.669 3.578 1.669 5.692 0 1.131-0.178 2.22-0.508 3.242l0.021-0.075c-0.021 0.066-0.034 0.143-0.034 0.222 0 0.335 0.219 0.619 0.522 0.716l0.005 0.001c0.065 0.021 0.14 0.033 0.218 0.033 0.002 0 0.003 0 0.005 0h-0c0 0 0.001 0 0.001 0 0.335 0 0.618-0.219 0.714-0.522l0.001-0.005c0.359-1.084 0.566-2.332 0.566-3.629 0-2.424-0.724-4.679-1.966-6.561l0.028 0.045z" />
+                    </Svg>
+                    <View>
+                        <Text style={{ color: "white", backgroundColor: _colors.powerOn, borderRadius: 5, paddingHorizontal: 5, paddingVertical: 1, lineHeight: 14, fontWeight: "500", fontSize: 12, textAlign: "center" }}>Heizung ein</Text>
+                        <Text style={{ fontSize: 11, textAlign: "center" }}>bis {getNextEvent()}</Text>
+                    </View>
+                </Container>
+            case "off":
+                return <Container>
+                    <Svg fill="orange" width="50px" height="50px" viewBox="0 0 32 22">
+                        <Path d="M7.071 15.386c-0.749-0.769-1.424-1.618-2.008-2.53l-0.038-0.064c-0.848-1.685-1.345-3.672-1.345-5.775 0-0.925 0.096-1.828 0.279-2.698l-0.015 0.085c0.005-0.031 0.007-0.067 0.007-0.103 0-0.414-0.336-0.75-0.75-0.75-0.385 0-0.702 0.29-0.745 0.664l-0 0.003c-0.176 0.847-0.277 1.821-0.277 2.818 0 2.375 0.573 4.615 1.588 6.592l-0.038-0.081c0.678 1.071 1.414 2.002 2.235 2.849l-0.004-0.005c0.611 0.642 1.186 1.335 1.712 2.066l0.040 0.058c1.047 1.61 1.669 3.579 1.669 5.694 0 1.13-0.178 2.219-0.507 3.24l0.021-0.075c-0.021 0.067-0.034 0.143-0.034 0.223 0 0.335 0.219 0.618 0.522 0.715l0.005 0.001c0.067 0.020 0.143 0.033 0.222 0.033h0c0 0 0.001 0 0.001 0 0.334 0 0.618-0.219 0.713-0.522l0.001-0.005c0.36-1.085 0.567-2.334 0.567-3.631 0-2.423-0.724-4.678-1.967-6.559l0.028 0.044c-0.608-0.851-1.226-1.597-1.891-2.298l0.009 0.009zM16.526 15.446c-0.906-0.931-1.723-1.959-2.43-3.063l-0.046-0.077c-1.031-2.043-1.635-4.453-1.635-7.004 0-1.117 0.116-2.207 0.336-3.258l-0.018 0.103c0.003-0.024 0.004-0.052 0.004-0.081 0-0.414-0.336-0.75-0.75-0.75-0.377 0-0.689 0.278-0.742 0.641l-0 0.004c-0.211 1.010-0.331 2.171-0.331 3.36 0 2.823 0.68 5.487 1.885 7.837l-0.045-0.097c0.809 1.277 1.687 2.386 2.666 3.397l-0.005-0.005c0.737 0.775 1.43 1.61 2.065 2.491l0.048 0.070c1.271 1.956 2.026 4.348 2.026 6.916 0 1.373-0.216 2.696-0.616 3.936l0.025-0.091c-0.021 0.066-0.034 0.143-0.034 0.222 0 0.335 0.219 0.619 0.522 0.716l0.005 0.001c0.067 0.021 0.143 0.033 0.222 0.033h0c0 0 0.001 0 0.001 0 0.335 0 0.618-0.219 0.714-0.522l0.001-0.005c0.427-1.288 0.673-2.771 0.673-4.312 0-2.877-0.858-5.554-2.332-7.788l0.033 0.053c-0.725-1.013-1.461-1.903-2.254-2.739l0.010 0.011zM27.826 17.874c-0.608-0.85-1.225-1.596-1.89-2.297l0.009 0.009c-0.749-0.77-1.424-1.62-2.009-2.533l-0.038-0.064c-0.849-1.684-1.346-3.67-1.346-5.773 0-0.925 0.096-1.827 0.279-2.698l-0.015 0.085c0.004-0.028 0.006-0.061 0.006-0.094 0-0.414-0.336-0.75-0.75-0.75-0.381 0-0.696 0.284-0.744 0.652l-0 0.004c-0.177 0.847-0.278 1.821-0.278 2.819 0 2.374 0.573 4.615 1.589 6.59l-0.038-0.081c0.678 1.073 1.414 2.005 2.237 2.853l-0.004-0.004c0.611 0.642 1.185 1.333 1.71 2.063l0.040 0.058c1.046 1.609 1.669 3.578 1.669 5.692 0 1.131-0.178 2.22-0.508 3.242l0.021-0.075c-0.021 0.066-0.034 0.143-0.034 0.222 0 0.335 0.219 0.619 0.522 0.716l0.005 0.001c0.065 0.021 0.14 0.033 0.218 0.033 0.002 0 0.003 0 0.005 0h-0c0 0 0.001 0 0.001 0 0.335 0 0.618-0.219 0.714-0.522l0.001-0.005c0.359-1.084 0.566-2.332 0.566-3.629 0-2.424-0.724-4.679-1.966-6.561l0.028 0.045z" />
+                    </Svg>
+                    <Text style={{ color: "white", backgroundColor: _colors.powerOff, borderRadius: 5, paddingHorizontal: 5, paddingVertical: 1, lineHeight: 14, fontWeight: "500", fontSize: 12, textAlign: "center" }}>Heizung aus</Text>
+                </Container>
+            case "unknown":
+                return <Container>
+                    <Svg fill="red" width="18px" height="18px" viewBox="0 0 32 22">
+                        <Path d="M7.071 15.386c-0.749-0.769-1.424-1.618-2.008-2.53l-0.038-0.064c-0.848-1.685-1.345-3.672-1.345-5.775 0-0.925 0.096-1.828 0.279-2.698l-0.015 0.085c0.005-0.031 0.007-0.067 0.007-0.103 0-0.414-0.336-0.75-0.75-0.75-0.385 0-0.702 0.29-0.745 0.664l-0 0.003c-0.176 0.847-0.277 1.821-0.277 2.818 0 2.375 0.573 4.615 1.588 6.592l-0.038-0.081c0.678 1.071 1.414 2.002 2.235 2.849l-0.004-0.005c0.611 0.642 1.186 1.335 1.712 2.066l0.040 0.058c1.047 1.61 1.669 3.579 1.669 5.694 0 1.13-0.178 2.219-0.507 3.24l0.021-0.075c-0.021 0.067-0.034 0.143-0.034 0.223 0 0.335 0.219 0.618 0.522 0.715l0.005 0.001c0.067 0.020 0.143 0.033 0.222 0.033h0c0 0 0.001 0 0.001 0 0.334 0 0.618-0.219 0.713-0.522l0.001-0.005c0.36-1.085 0.567-2.334 0.567-3.631 0-2.423-0.724-4.678-1.967-6.559l0.028 0.044c-0.608-0.851-1.226-1.597-1.891-2.298l0.009 0.009zM16.526 15.446c-0.906-0.931-1.723-1.959-2.43-3.063l-0.046-0.077c-1.031-2.043-1.635-4.453-1.635-7.004 0-1.117 0.116-2.207 0.336-3.258l-0.018 0.103c0.003-0.024 0.004-0.052 0.004-0.081 0-0.414-0.336-0.75-0.75-0.75-0.377 0-0.689 0.278-0.742 0.641l-0 0.004c-0.211 1.010-0.331 2.171-0.331 3.36 0 2.823 0.68 5.487 1.885 7.837l-0.045-0.097c0.809 1.277 1.687 2.386 2.666 3.397l-0.005-0.005c0.737 0.775 1.43 1.61 2.065 2.491l0.048 0.070c1.271 1.956 2.026 4.348 2.026 6.916 0 1.373-0.216 2.696-0.616 3.936l0.025-0.091c-0.021 0.066-0.034 0.143-0.034 0.222 0 0.335 0.219 0.619 0.522 0.716l0.005 0.001c0.067 0.021 0.143 0.033 0.222 0.033h0c0 0 0.001 0 0.001 0 0.335 0 0.618-0.219 0.714-0.522l0.001-0.005c0.427-1.288 0.673-2.771 0.673-4.312 0-2.877-0.858-5.554-2.332-7.788l0.033 0.053c-0.725-1.013-1.461-1.903-2.254-2.739l0.010 0.011zM27.826 17.874c-0.608-0.85-1.225-1.596-1.89-2.297l0.009 0.009c-0.749-0.77-1.424-1.62-2.009-2.533l-0.038-0.064c-0.849-1.684-1.346-3.67-1.346-5.773 0-0.925 0.096-1.827 0.279-2.698l-0.015 0.085c0.004-0.028 0.006-0.061 0.006-0.094 0-0.414-0.336-0.75-0.75-0.75-0.381 0-0.696 0.284-0.744 0.652l-0 0.004c-0.177 0.847-0.278 1.821-0.278 2.819 0 2.374 0.573 4.615 1.589 6.59l-0.038-0.081c0.678 1.073 1.414 2.005 2.237 2.853l-0.004-0.004c0.611 0.642 1.185 1.333 1.71 2.063l0.040 0.058c1.046 1.609 1.669 3.578 1.669 5.692 0 1.131-0.178 2.22-0.508 3.242l0.021-0.075c-0.021 0.066-0.034 0.143-0.034 0.222 0 0.335 0.219 0.619 0.522 0.716l0.005 0.001c0.065 0.021 0.14 0.033 0.218 0.033 0.002 0 0.003 0 0.005 0h-0c0 0 0.001 0 0.001 0 0.335 0 0.618-0.219 0.714-0.522l0.001-0.005c0.359-1.084 0.566-2.332 0.566-3.629 0-2.424-0.724-4.679-1.966-6.561l0.028 0.045z" />
+                    </Svg>
+                    <Text style={{ color: _colors.powerOff, fontWeight: "500", fontSize: 14, textAlign: "center" }}>Heizung aus</Text>
+                </Container>
+
+            default:
+                return <></>
+        }
+
+    }
 
     return <View style={{ flex: 1 }}>
         <StatusBar backgroundColor="transparent" translucent barStyle={"dark-content"} />
         <View style={styles.container}>
             <View style={{ height: 230 }}>
-                <ImageBackground source={require('@assets/mosque.jpg')} resizeMode='cover' style={{ flex: 1 }}>
-                    <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                <ImageBackground source={require('@assets/mosque.jpeg')} resizeMode='cover' style={{ flex: 1 }}>
+                    <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ flexDirection: "row" }}>
                         <View style={styles.headerBoxContainer}>
-                            {/* <View style={styles.headerBox}>
-                                <BlurView style={{ position: 'absolute', width: '100%', height: '100%', borderRadius: 4 }} tint="light" intensity={50} />
-
-                                <View style={{ alignItems: "center" }}>
-                                    <Ionicons name='power' size={35} style={{ marginRight: 5, color: colorState.on }} />
-                                    <Text style={{ color: colorState.on, fontWeight: "400", fontSize: 12, textAlign: "center", }}>Heizung eingeschaltet</Text>
-                                </View>
-                            </View> */}
                             <View style={styles.headerBox}>
-                                <Image source={require("@assets/249.jpg")}
-                                    style={{ backgroundColor: "white", position: "absolute", left: 0, top: 0, right: 0, bottom: 0, opacity: .6, resizeMode: "cover" }} />
-                                <View style={{ alignItems: "center" }}>
-                                    <Ionicons name='power' size={35} style={{ marginRight: 5, color: powerStateColor.off }} />
-                                    <Text style={{ color: powerStateColor.off, fontWeight: "500", fontSize: 12, textAlign: "center" }}>Heizung eingeschaltet</Text>
+                                <View style={{ backgroundColor: "white", opacity: 0.75, position: "absolute", left: 0, top: 0, right: 0, bottom: 0 }} />
+                                <View style={{ alignItems: "center", gap: 5 }}>
+                                    {device_connected ?
+                                        <MaterialCommunityIcons name='router-wireless' size={40} color={"green"} />
+                                        : <MaterialCommunityIcons name='router-wireless-off' size={40} color={"red"} />}
+                                    <Text style={{ color: device_connected ? _colors.powerOn : "red", fontWeight: "500", fontSize: 14, textAlign: "center", paddingHorizontal: 3 }}>
+                                        {device_connected ? "Gerät aktiv" : "Gerät unerreichbar"}
+                                    </Text>
                                 </View>
+                            </View>
+                            <View style={styles.headerBox}>
+                                <View style={{ backgroundColor: "white", opacity: 0.75, position: "absolute", left: 0, top: 0, right: 0, bottom: 0 }} />
+                                <RelaisState />
                             </View>
                         </View>
                     </ScrollView>
@@ -67,11 +120,16 @@ const styles = StyleSheet.create({
         flex: 1
     },
     headerBoxContainer: {
-        flexDirection: "row", marginTop: "auto", marginBottom: 30, paddingHorizontal: 16, gap: 16
+        width: "100%",
+        flexDirection: "row",
+        gap: 16,
+        marginTop: "auto",
+        marginBottom: 30,
+        paddingHorizontal: 16,
     },
     headerBox: {
-        width: 110,
-        height: 110,
+        aspectRatio: 1,
+        width: 120,
         borderRadius: 16,
         overflow: "hidden",
         justifyContent: "center",

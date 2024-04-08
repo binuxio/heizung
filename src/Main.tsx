@@ -1,55 +1,28 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import StackScreens from './StackScreens/StackScreens';
+import { useAppDispatch } from './storage/redux/hooks';
+import storage from './storage/storage';
+import { setDeviceState, setSchedule } from './storage/redux/slice.appData';
 
 const Main: React.FC = () => {
+  const dispatch = useAppDispatch()
+  useEffect(() => {
+    storage.load({ key: "deviceState" }).then(e => {
+      if (e)
+        dispatch(setDeviceState(e))
+    }
+    ).catch(e => console.log("Persist Storage Error", e))
+
+    storage.load({ key: "schedule" }).then(e => {
+      if (e)
+        dispatch(setSchedule(e))
+    }
+    ).catch(e => console.log("Persist Storage Error", e))
+  }, [])
+
   return <StackScreens />
 }
 
-// const Main: React.FC = () => {
-//   const scheduleEditorOpen = useAppSelector(state => state.appState.scheduleEditorStackScreenOpen)
-
-//   return (
-//     <Tab.Navigator initialRouteName='HomeScreen' screenOptions={{
-
-//       tabBarShowLabel: false,
-//       tabBarStyle: {
-//         // display: scheduleEditorOpen ? "none" : "flex"
-//         display: "none"
-//       }
-//     }} >
-//       <Tab.Screen name="HomeScreen" component={HomeScreen}
-//         options={{
-//           headerShown: false,
-//           tabBarIcon: ({ focused }) => <Ionicons name={"home-sharp"} size={25} color={focused ? theme.colors.primary : "black"} />
-//         }} />
-//       <Tab.Screen name="SchedueScreen" component={ScheduleScreen}
-//         options={{
-//           headerShown: false,
-//           tabBarIcon: ({ focused }) => <MaterialCommunityIcons name={"calendar-edit"} size={25} color={focused ? theme.colors.primary : "black"} />
-//         }}
-//       />
-//     </Tab.Navigator>
-//   );
-// };
-
 export default Main;
 
-
-const Header: React.FC<{ title: string }> = ({ title }) => {
-  const styles = StyleSheet.create({
-    container: {
-      backgroundColor: "#0369a0",
-      padding: 8
-    },
-    title: {
-      fontSize: 21,
-      color: "white",
-      textAlign: "center"
-    }
-  })
-
-  return <View style={styles.container}>
-    <Text style={styles.title}>{title}</Text>
-  </View>
-}

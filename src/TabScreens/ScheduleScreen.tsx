@@ -7,8 +7,8 @@ import { createStackNavigator } from '@react-navigation/stack';
 import ScheduleEditor from '../utils/Schedule/StackScreens/ScheduleEditor';
 import { ScheduleStackParamList, ScheduleStackScreenProps } from '../utils/Schedule/StackScreens/types';
 import { RootStackScreenProps } from './types';
-import { useAppDispatch } from '../redux/hooks';
-import { setScheduleStackScreenOpen } from '../redux/slice.appData';
+import { useAppDispatch } from '../storage/redux/hooks';
+import { setScheduleStackScreenOpen } from '../storage/redux/slice.appData';
 
 const Stack = createStackNavigator<ScheduleStackParamList>()
 

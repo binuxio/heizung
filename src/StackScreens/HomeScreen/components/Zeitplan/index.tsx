@@ -7,46 +7,51 @@ import { RootStackScreenProps } from '@/StackScreens/types';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { TouchableHighlight } from 'react-native-gesture-handler';
 import fetchSchedule from '@/api/schedule/fetchSchedule';
-import { useAppDispatch, useAppSelector } from '@/redux/hooks';
+import { useAppDispatch, useAppSelector } from '@/storage/redux/hooks';
 import errorHandlerUI from '@/components/UI/errorHandlerUI';
+import { setScheduleEnabled } from '@/storage/redux/slice.appData';
+import sendScheduleEnabledState from '@/api/device/sendScheduleEnabledState';
+import fetchDeviceState from '@/api/device/fetchDeviceState';
 
 const Zeitplan: React.FC<{ stackProps: Partial<RootStackScreenProps<"HomeScreen">> }> = ({ stackProps: { navigation } }) => {
-    const [timePlanActive, setTimePlanActive] = React.useState(true);
-    const [isFetching, setIsFetching] = React.useState(false)
+    const { schedule_enabled } = useAppSelector(state => state.appData.deviceState)
     const isFetchingSchedule = useAppSelector(state => state.appState.isFetchingSchedule)
     const dispatch = useAppDispatch()
 
-    const refetchSchedule = async () => {
+    const refetchData = async () => {
         const res = await fetchSchedule(dispatch)
         errorHandlerUI(res)
+
+        const res2 = await fetchDeviceState(dispatch)
+        errorHandlerUI(res2)
     }
 
-    React.useEffect(() => {
-        if (isFetchingSchedule) setIsFetching(true)
-        else {
-            setTimeout(() => {
-                setIsFetching(false)
-            }, 1000);
+    const toggleSchedule = async () => {
+        const res = await sendScheduleEnabledState(!schedule_enabled)
+        if (res.status != 200) {
+            errorHandlerUI(res)
+            return
         }
-    }, [isFetchingSchedule])
+        dispatch(setScheduleEnabled(!schedule_enabled))
+    }
 
     return (
-        <View style={{ padding: 16, flex: 1 }}>
-            <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
-                <View style={{ flexDirection: "row", alignItems: "flex-end", gap: 2 }}>
-                    <Text style={{ fontWeight: "600", fontSize: 22, color: timePlanActive ? "green" : "black" }}>Zeitplan</Text>
-                    <Text style={{ fontSize: 9, color: timePlanActive ? "green" : "orange", marginBottom: 3, borderRadius: 3, paddingHorizontal: 2 }}>
-                        {timePlanActive ? "Aktiv" : "Inaktiv"}
+        <View style={{ paddingTop: 0, flex: 1 }}>
+            <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingHorizontal: 16 }}>
+                <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+                    <Text style={{ fontWeight: "600", fontSize: 22 }}>Zeitplan</Text>
+                    <Text style={{ fontSize: 12, backgroundColor: schedule_enabled ? "green" : "orange", color: "white", borderRadius: 3, paddingHorizontal: 3, lineHeight: 17 }}>
+                        {schedule_enabled ? "Aktiv" : "Inaktiv"}
                     </Text>
                 </View>
                 <View style={{ flexDirection: "row", alignItems: "center", gap: 15 }}>
-                    {isFetching ?
+                    {isFetchingSchedule ?
                         <ActivityIndicator size={25} color={_colors.primary} /> :
-                        <Pressable style={{}} onPress={() => refetchSchedule()} >
+                        <Pressable style={{}} onPress={() => refetchData()} >
                             <MaterialCommunityIcons name='refresh' size={25} color={"gray"} />
                         </Pressable>
                     }
-                    <Switch value={timePlanActive} onValueChange={() => setTimePlanActive(e => !e)} theme={{ colors: { primary: "green" } }} />
+                    <Switch value={schedule_enabled} onValueChange={toggleSchedule} theme={{ colors: { primary: "green" } }} />
                 </View>
             </View >
             <EventsTable stackProps={{ navigation }} />

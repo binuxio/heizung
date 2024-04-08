@@ -1,6 +1,6 @@
 import moment from "moment";
 import getEventsFromMap from "../../../utils/Schedule/getEventsFromMap";
-import timeIsSameOrBefore from "../../../utils/Schedule/timeIsSameOrBefore";
+import timeIsSameOrBefore from "../../../utils/Schedule/returnSmallestTime";
 
 export default function () {
     const todayMoment = moment()

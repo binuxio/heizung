@@ -14,7 +14,7 @@ const TimePicker: FC<{ onChange: (hours: string, minutes: string) => void, value
     const [selectedHour, setSelectedHour] = useState<string | undefined>(undefined);
     const [selectedMinute, setSelectedMinute] = useState<string | undefined>(undefined);
 
-    console.log("rerender time")
+    // console.log("rerender time")
     useEffect(() => {
         console.log(value)
         if (!value) return

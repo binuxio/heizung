@@ -6,6 +6,7 @@ import React from 'react'
 import { EventMoment } from '@/types/schedule.types'
 import { Ionicons, MaterialCommunityIcons, MaterialIcons } from '@expo/vector-icons'
 import { _colors } from '@/theme'
+import { eventItemStyles } from '@/global.styles'
 
 let prevEventMoment: undefined | EventMoment = undefined
 export let eventsTimeConflicts = false
@@ -41,7 +42,7 @@ export default class EventItem extends React.Component<EventItemProps, { animate
         if (!eventsTimeConflicts)
             eventsTimeConflicts = prevEndTimeConflicting
 
-        console.log("rerender Eventitem", event.start.time)
+        // console.log("rerender Eventitem", event.start.time)
         return (
             <Animated.View style={{
                 overflow: "hidden", borderRadius: 7,
@@ -68,19 +69,19 @@ export default class EventItem extends React.Component<EventItemProps, { animate
                         </View>
                     )}
                 >
-                    <TouchableHighlight underlayColor={"rgba(141, 199, 217, .7)"} onPress={() => {
+                    <TouchableHighlight underlayColor={_colors.backgroundEventItemHighlighted} onPress={() => {
                         setSelectedEventID(event.id)
                     }}
-                        style={{ flex: 1, backgroundColor: selectedEventID == event.id ? _colors.lightBackground : _colors.background }}>
-                        <View style={[styles.eventContainer, {}]}>
-                            <View style={{ flexDirection: "row", gap: 20 }}>
-                                <View style={styles.timeContainer}>
-                                    <Ionicons name='power' style={[styles.powerIcon, { marginRight: 5, color: "green" }]} />
-                                    <Text style={[styles.durationText, prevEndTimeConflicting ? { color: "red" } : {}]}>{startMoment.format("HH:mm")}</Text>
+                        style={{ flex: 1, backgroundColor: selectedEventID == event.id ? _colors.backgroundEventItemHighlighted : _colors.backgroundEventItem }}>
+                        <View style={[eventItemStyles.eventContainer, {}]}>
+                            <View style={eventItemStyles.timeContainer}>
+                                <View style={eventItemStyles.timeBox}>
+                                    <Ionicons name='power' style={[eventItemStyles.powerIcon, { marginRight: 5, color: _colors.powerOn }]} />
+                                    <Text style={[eventItemStyles.durationText, { color: _colors.powerOn }, prevEndTimeConflicting ? { color: "red" } : {}]}>{startMoment.format("HH:mm")}</Text>
                                 </View>
-                                <View style={styles.timeContainer}>
-                                    <Ionicons name='power' style={[styles.powerIcon, { marginRight: 5, color: "orange" }]} />
-                                    <Text style={styles.durationText}>{crossesDay ? endMoment.clone().add(1, "days").format("HH:mm, dd") : endMoment.format("HH:mm")}</Text>
+                                <View style={eventItemStyles.timeBox}>
+                                    <Ionicons name='power' style={[eventItemStyles.powerIcon, { marginRight: 5, color: _colors.powerOff }]} />
+                                    <Text style={[eventItemStyles.durationText, { color: _colors.powerOff }]}>{crossesDay ? endMoment.clone().format("HH:mm, dd") : endMoment.format("HH:mm")}</Text>
                                 </View>
                             </View>
                             <View style={{ flex: 1, flexDirection: "row", justifyContent: "flex-end", alignItems: "center" }}>
@@ -94,41 +95,3 @@ export default class EventItem extends React.Component<EventItemProps, { animate
     }
 }
 
-const styles = StyleSheet.create({
-    screenContainer: {
-        height: "100%"
-    },
-    event: {
-        marginBottom: 7
-    },
-    eventContainer: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 10,
-        flex: 1,
-        paddingHorizontal: 10,
-    },
-    timeContainer: {
-        flexDirection: 'row',
-        alignItems: 'center',
-    },
-    powerIcon: {
-        color: "orange",
-        fontSize: 18
-    },
-    durationText: {
-        color: 'grey',
-        fontSize: 18
-    },
-    loadingContainer: {
-
-    },
-    indicator: {
-        width: '100%',
-        height: '100%',
-        alignItems: 'center',
-        justifyContent: 'center',
-        backgroundColor: 'rgba(255, 255, 255, 0.7)',
-        position: 'absolute'
-    },
-});

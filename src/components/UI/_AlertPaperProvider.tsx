@@ -65,7 +65,7 @@ const _AlertPaperProvider: React.FC<{ children: React.ReactNode }> = ({ children
                         backgroundColor: _colors.primary,
                         fontSize: 13,
                         borderRadius: 5,
-                        paddingVertical: 5, paddingHorizontal: 10,
+                        paddingVertical: 5, paddingHorizontal: 7,
                     }, action.buttonStyle]}>{action.text}</Text>
                 </TouchableOpacity>
             ))}

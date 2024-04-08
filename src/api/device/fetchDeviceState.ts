@@ -4,16 +4,15 @@ import { serverURL } from '../dotenv';
 import { _Response } from '../types';
 import { AppDispatch } from "@/storage/redux/store";
 import { setIsFetchingSchedule } from "@/storage/redux/slice.appState";
-import { setSchedule } from "@/storage/redux/slice.appData";
+import { setDeviceState, setSchedule } from "@/storage/redux/slice.appData";
 
 export default async function (dispatch: AppDispatch): Promise<_Response> {
-    console.log("fetching schedule")
+    console.log("fetching state")
     try {
-        dispatch(setIsFetchingSchedule(true));
-        const res = await axios(serverURL + "/schedule", { timeout: 10000 })
-        const schedule = res.data
-        dispatch(setSchedule(schedule))
-        dispatch(setIsFetchingSchedule(false));
+        // dispatch(setIsFetchingSchedule(true));
+        const res = await axios(serverURL + "/state", { timeout: 10000 })
+        dispatch(setDeviceState(res.data))
+        // dispatch(setIsFetchingSchedule(false));
         return { status: 200 }
     } catch (error: any) {
         dispatch(setIsFetchingSchedule(false));

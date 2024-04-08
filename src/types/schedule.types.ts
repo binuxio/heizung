@@ -1,3 +1,4 @@
+export type ScheduleMap = Map<number, _Event[]>
 export type Schedule = {
     [day: number]: _Event[]
 }
@@ -9,9 +10,9 @@ export type _Event = {
     };
     end: {
         time: string;
+        day: number
     }
     id: string
-    _prevTimeConflict?: boolean
 };
 
 export type EventMoment = {

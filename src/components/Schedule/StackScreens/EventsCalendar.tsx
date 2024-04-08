@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from 'react'
 import theme from '../../../theme'
-import { useAppDispatch, } from '../../../redux/hooks'
+import { useAppDispatch, } from '../../../storage/redux/hooks'
 import { StatusBar } from 'expo-status-bar'
-import { triggerCalenderRerender } from '../../../redux/slice.appData'
+import { triggerCalenderRerender } from '../../../storage/redux/slice.appData'
 import { ScheduleStackScreenProps } from './types'
 import { useNetInfo } from "@react-native-community/netinfo"
 import fetchSchedule from '../../api/fetchSchedule'

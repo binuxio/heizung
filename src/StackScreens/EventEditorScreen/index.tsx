@@ -1,19 +1,24 @@
 import { _Event } from '@/types/schedule.types'
 import React, { memo, useCallback, useEffect, useLayoutEffect, useReducer, useState } from 'react'
-import { Alert, ScrollView, Text, TouchableHighlight, TouchableOpacity, View } from 'react-native'
+import { Alert, ScrollView, StyleSheet, Text, TouchableHighlight, TouchableOpacity, View } from 'react-native'
 import { RootStackScreenProps } from '../types'
 import theme, { _colors } from '@/theme'
 import { Ionicons, } from '@expo/vector-icons'
 import moment from 'moment'
 import "moment/locale/de"
 import TimePicker from './components/TimePicker'
-import eventReducer from './components/eventReducer'
+import eventReducer from './utils/eventReducer'
 import EventItem, { eventsTimeConflicts } from './components/EventItem'
-import sortEvents from '@/utils/Schedule/sortEvents'
 import { useAlert } from '@/components/UI/_AlertPaperProvider'
 import sendUpdatedEvents from '@/api/schedule/sendUpdatedEvents'
 import errorHandlerUI from '@/components/UI/errorHandlerUI'
+import { produce } from 'immer'
+import { useAppDispatch } from '@/storage/redux/hooks'
+import { updateSchedule } from '@/storage/redux/slice.appData'
+import crossesDay_native from '@/utils/Schedule/corssesDay_native'
 
+let finalEvents: _Event[] = []
+let deletedEventsId: string[] = []
 export default function EventEditorScreen({ navigation, route }: RootStackScreenProps<"EventEditorScreen">) {
   const { events: _events, selectedEventID: _selectedEventID, day } = route.params
   const [eventToDeleteID, setEventToDeleteID] = useState<undefined | string>(undefined)
@@ -21,7 +26,7 @@ export default function EventEditorScreen({ navigation, route }: RootStackScreen
   const [loading, setLoading] = useState(true)
   const [{ events }, dispatch] = useReducer<typeof eventReducer>(eventReducer, { events: [..._events] })
   const selectedEvent = events.find(event => event.id === selectedEventID)
-
+  const reduxDispatch = useAppDispatch()
   const [changesMade, setChangesMade] = useState(false)
   const { showAlert } = useAlert()
 
@@ -33,30 +38,20 @@ export default function EventEditorScreen({ navigation, route }: RootStackScreen
           title: 'Änderungen verwerfen?',
           actions: [
             {
-              text: "Verwerfen",
-              // buttonStyle: { fontSize: 13, textDecorationLine: "underline" },
-              onPress() {
-                // if (eventsUpdateSuccess) updateCalendar()
-                navigation.dispatch(ev.data.action);
-              },
+              buttonStyle: { fontSize: 13, color: "black", backgroundColor: "transparent" },
+              text: "Abbrechen"
             },
             {
-              text: "Abbrechen"
+              text: "Verwerfen",
+              buttonStyle: { fontSize: 13, backgroundColor: "red", color: "white" },
+              onPress() {
+                navigation.dispatch(ev.data.action);
+              },
             }
           ]
         })
-      } /* else if (eventsUpdateSuccess) updateCalendar() */
+      }
     };
-
-    const updateCalendar = async () => {
-      try {
-        // const res = await fetchSchedule(dispatch)
-        // errorHandlerUI(res)
-      } catch (error) { }
-      setTimeout(() => {
-        // dispatch(triggerCalenderRerender(true))
-      }, 100);
-    }
 
     const unsubscribe = navigation.addListener('beforeRemove', onPageLeave);
 
@@ -68,10 +63,10 @@ export default function EventEditorScreen({ navigation, route }: RootStackScreen
           activeOpacity={.4}
           style={{
             marginRight: 10,
-            backgroundColor: changesMade ? theme.colors.eventBackground : "rgba(0,0,0, .15)",
+            backgroundColor: changesMade ? theme.colors.primary : "rgba(0,0,0, .15)",
             paddingVertical: 4, paddingHorizontal: 10, borderRadius: 5
           }}>
-          <Text style={{ fontSize: 14, color: changesMade ? theme.colors.primary : "white", fontWeight: "600" }}>Speichern</Text>
+          <Text style={{ fontSize: 14, color: "white", fontWeight: "600" }}>Speichern</Text>
         </TouchableOpacity>
       },
     })
@@ -81,8 +76,9 @@ export default function EventEditorScreen({ navigation, route }: RootStackScreen
     };
   }, [changesMade, navigation]);
 
-  console.log("render editor screen")
+  // console.log("render editor screen")
   useLayoutEffect(() => {
+    deletedEventsId = []
     navigation.setOptions({
       headerTitleAlign: "center",
       headerLeft() {
@@ -95,7 +91,7 @@ export default function EventEditorScreen({ navigation, route }: RootStackScreen
       headerTitle(props) {
         return <View style={{}}>
           <Text style={{ fontSize: 16, fontWeight: "600", color: theme.colors.primary }}>
-            {moment().set("day", day + 1).locale("de").format("dddd")}
+            {moment().isoWeekday(day).format("dddd")}
           </Text>
         </View>
       },
@@ -108,37 +104,52 @@ export default function EventEditorScreen({ navigation, route }: RootStackScreen
     }, 80)
   }, [])
 
+  useEffect(() => {
+    finalEvents = events
+  }, [events])
+
   const updateOnServer = async () => {
     if (eventsTimeConflicts) {
-      Alert.alert("Der Zeitplan enthält Fehler", "Achte darauf dass keine Zeiten sich überlappen")
+      Alert.alert("Fehler im Plan", "Achte darauf dass keine Zeiten sich schneiden")
       return
     }
-    const res = await sendUpdatedEvents(events, day)
-    errorHandlerUI(res)
-    setChangesMade(false)
+    const res = await sendUpdatedEvents(finalEvents, deletedEventsId, day)
+    if (res.status !== 200) errorHandlerUI(res)
+    else {
+      setChangesMade(false)
+      reduxDispatch(updateSchedule({ day, events: finalEvents }))
+    }
   }
 
   const updateEventsTime = (newTime: string, updatedTime: "start" | "end") => {
     const updatedEvent = { ...selectedEvent } as _Event
 
-    if (updatedTime === "start")
+    if (updatedTime === "start") {
       updatedEvent.start = { time: newTime, day }
-    else if (updatedTime === "end")
-      updatedEvent.end = { time: newTime };
+    }
+    else if (updatedTime === "end") {
+      updatedEvent.end = { time: newTime, day };
+    }
 
-    dispatch({ type: "UPDATE", payload: updatedEvent });
+    const crossesDay = crossesDay_native(updatedEvent.start.time, updatedEvent.end.time)
+    if (crossesDay) updatedEvent.end = { time: updatedEvent.end.time, day: day + 1 }
+    else updatedEvent.end = { time: updatedEvent.end.time, day }
+
+    dispatch({ type: "UPDATE", payload: updatedEvent })
     setChangesMade(true)
   };
 
   const createEvent = () => {
     const id = new Date().getTime().toString()
-    dispatch({ type: "CREATE", payload: { id, start: { time: "00:00", day }, end: { time: "00:00" } } })
+    dispatch({ type: "CREATE", payload: { id, start: { time: "00:00", day }, end: { time: "01:00", day } } })
     setSelectedEventID(id)
     setChangesMade(true)
   }
 
   const deleteEvent = () => {
     dispatch({ type: "DELETE", payload: eventToDeleteID! })
+    if (eventToDeleteID)
+      deletedEventsId.push(eventToDeleteID)
     setChangesMade(true)
   }
 
@@ -148,21 +159,27 @@ export default function EventEditorScreen({ navigation, route }: RootStackScreen
     <>
       {!loading &&
         <View style={{ flex: 1 }}>
-          <TouchableHighlight onPress={() => createEvent()} underlayColor={_colors.secondary} activeOpacity={.2}
-            style={{ backgroundColor: _colors.primary, position: "absolute", height: 55, aspectRatio: 1, borderRadius: 55 / 2, right: 16, bottom: 16, zIndex: 10, justifyContent: "center", alignItems: "center" }}>
+          <TouchableHighlight onPress={() => createEvent()} underlayColor={_colors.primary}
+            style={{ backgroundColor: _colors.secondary, position: "absolute", height: 55, aspectRatio: 1, borderRadius: 55 / 2, right: 16, bottom: 16, zIndex: 10, justifyContent: "center", alignItems: "center" }}>
             <Ionicons name='add' style={{ fontSize: 35, color: "white" }} />
           </TouchableHighlight>
-          <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", backgroundColor: _colors.background, padding: 16 }}>
+          <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", backgroundColor: _colors.backgroundEventItem, padding: 16 }}>
             <View style={{}}>
               <TimePicker onChange={(h, m) => updateEventsTime(`${h}:${m}`, "start")} value={selectedEvent && selectedEvent.start.time} />
               <View style={{ flexDirection: "row", justifyContent: "center" }}>
-                <Text style={{ backgroundColor: "green", color: "white", fontSize: 14, borderRadius: 5, paddingHorizontal: 5, paddingVertical: 2 }}>Einschalten</Text>
+                <View style={[styles.timerPickerLabel, { backgroundColor: _colors.powerOn }]}>
+                  <Ionicons name='power' style={{ color: "white", fontSize: 14 }} />
+                  <Text style={{ color: "white", fontSize: 14 }}>Einschalten</Text>
+                </View>
               </View>
             </View>
             <View style={{}}>
               <TimePicker onChange={(h, m) => updateEventsTime(`${h}:${m}`, "end")} value={selectedEvent && selectedEvent.end.time} />
               <View style={{ flexDirection: "row", justifyContent: "center" }}>
-                <Text style={{ backgroundColor: "orange", color: "white", fontSize: 14, borderRadius: 5, paddingHorizontal: 5, paddingVertical: 2 }}>Auschalten</Text>
+                <View style={[styles.timerPickerLabel, { backgroundColor: _colors.powerOff }]}>
+                  <Ionicons name='power' style={{ color: "white", fontSize: 14 }} />
+                  <Text style={{ color: "white", fontSize: 14 }}>Auschalten</Text>
+                </View>
               </View>
             </View>
           </View>
@@ -183,3 +200,13 @@ export default function EventEditorScreen({ navigation, route }: RootStackScreen
   )
 }
 
+const styles = StyleSheet.create({
+  timerPickerLabel: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 3,
+    paddingHorizontal: 5,
+    paddingVertical: 2,
+    borderRadius: 5
+  }
+})

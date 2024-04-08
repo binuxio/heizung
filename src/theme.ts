@@ -1,12 +1,13 @@
 const theme = {
     colors: {
-        primary: '#071330',
-        secondary: '#13344C',
+        primary: '#79AC78',
+        secondary: '#618264',
         background: "#13344C",
-        backgroundEventItem: "#88BFCB",
+        backgroundEventItem: "#D0E7D2",
+        backgroundEventItemHighlighted: "#B0D9B1",
         lightBackground: "#88BFCB",
-        primaryLight: "#52c4ff",
-        eventBackground: "rgb(198, 235, 245)",
+        powerOff: "orange",
+        powerOn: "#006400",
     },
     shadow: {
         shadowColor: "#000",
