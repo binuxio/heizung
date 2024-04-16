@@ -19,11 +19,3 @@ class SchedulerSingleton {
 const schedulerInstance = SchedulerSingleton.getInstance();
 
 export default schedulerInstance.scheduler
-
-export let runningEvent: undefined | string = undefined
-
-// const eventsState = new Map<string, EventState>()
-
-const PriorityEvent = undefined
-
-// export const setRunningEvent = (_runningEvent) => runningEvent = _runningEvent

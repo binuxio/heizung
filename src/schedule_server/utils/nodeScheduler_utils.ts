@@ -1,4 +1,4 @@
-import { Job, RecurrenceRule } from "node-schedule"
+import {  RecurrenceRule } from "node-schedule"
 import nodeScheduler from "../nodeScheduler"
 import moment from "moment"
 

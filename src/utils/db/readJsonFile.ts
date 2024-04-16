@@ -7,4 +7,4 @@ export default async function <T>(filePath: string): Promise<T> {
     } catch (error) {
         throw error
     }
-} 
+}

@@ -2,11 +2,10 @@ import express from "express"
 import { createServer } from "http";
 import { Server, Socket } from "socket.io";
 import clientApp from "./clientApp"
-import fs from "fs"
 import moment from "moment";
 import { _socket, logdateFormat, setSocket } from "./dotenv";
-import setDeviceConnected from "./utils/db/setDeviceConnected";
-import { initEvents } from "./device/events";
+import setDeviceConnected from "./utils/db/functions/setDeviceConnected";
+import { initEvents } from "./device/socket_events";
 import { start_schedule_server } from "./schedule_server";
 
 const app = express()

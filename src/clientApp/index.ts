@@ -4,8 +4,8 @@ import writeJsonFile from '@/utils/db/writeJsonFile';
 import { scheduleJsonPath, stateJsonPath } from '@/dotenv';
 import readJsonFile from '@/utils/db/readJsonFile';
 import sendCommandToDevice from '@/utils/device/sendCommandToDevice';
-import delete_event from '@/schedule_server/utils/events/delete_event';
-import schedule_event from '@/schedule_server/utils/events/schedule_event';
+import delete_events from '@/schedule_server/utils/events/delete_events';
+import schedule_events from '@/schedule_server/utils/events/schedule_events';
 
 const app = express();
 
@@ -65,9 +65,8 @@ app.post('/update-schedule', async (req, res, next) => {
         schedule[day] = newEvents
         await writeJsonFile(scheduleJsonPath, schedule);
         // await updateScheduleVersionId()
-        console.log("deleted Events:", deletedEventsId)
-        delete_event(deletedEventsId)
-        schedule_event(newEvents)
+        delete_events(deletedEventsId)
+        schedule_events(newEvents)
         res.sendStatus(200);
     } catch (err) {
         next(err);
@@ -75,8 +74,14 @@ app.post('/update-schedule', async (req, res, next) => {
 });
 
 // TODO: create endpoints to take changes on the schedule
-app.post
+app.post("/turn-on-relais", (req, res) => {
+    const { turnOffTime: { day, time } } = req.body
+    
+})
 
+app.post("/turn-off-relais", () => {
+
+})
 
 const errorHandler: ErrorRequestHandler = (err, req, res, next) => {
     const error = {
