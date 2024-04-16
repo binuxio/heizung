@@ -24,10 +24,10 @@ import updateSchedule from '../../api/updateSchedule';
 import fetchSchedule from '../../api/fetchSchedule';
 import { useAppDispatch } from '../../../storage/redux/hooks';
 import { triggerCalenderRerender } from '../../../storage/redux/slice.appData';
-import errorHandlerUI from '../../../components/UI/errorHandlerUI';
-import calculateNextState from '../../../components/Home/utils/calculateNextState';
+import errorHandlerUI from '../../UI/errorHandlerUI';
+import calculateNextState from '../../Home/utils/calculateNextState';
 import { Path, Svg } from 'react-native-svg';
-import { useDialog } from '../../../components/UI/PaperDialogProvider';
+import { useDialog } from '../../UI/PaperDialogProvider';
 
 let removedEvents_ids: string[] = []
 let newEvents_id: string[] = []

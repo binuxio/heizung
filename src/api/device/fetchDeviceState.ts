@@ -10,10 +10,10 @@ export default async function (dispatch: AppDispatch): Promise<_Response> {
     console.log("fetching state")
     try {
         // dispatch(setIsFetchingSchedule(true));
+        return { status: 200 }
         const res = await axios(serverURL + "/state", { timeout: 10000 })
         dispatch(setDeviceState(res.data))
         // dispatch(setIsFetchingSchedule(false));
-        return { status: 200 }
     } catch (error: any) {
         dispatch(setIsFetchingSchedule(false));
         return errorHandler(error)

@@ -6,7 +6,7 @@ import { triggerCalenderRerender } from '../../../storage/redux/slice.appData'
 import { ScheduleStackScreenProps } from './types'
 import { useNetInfo } from "@react-native-community/netinfo"
 import fetchSchedule from '../../api/fetchSchedule'
-import errorHandlerUI from '../../../components/UI/errorHandlerUI'
+import errorHandlerUI from '../../UI/errorHandlerUI'
 import WeeklyCalendar from '../utils/weekly-calendar'
 import EventDayView from '../utils/weekly-calendar/EventDayView'
 import { Alert, View } from 'react-native'

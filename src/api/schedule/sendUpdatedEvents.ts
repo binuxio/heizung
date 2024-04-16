@@ -6,12 +6,12 @@ import { _Event } from "@/types/schedule.types";
 
 export default async function (events: _Event[], deletedEventsId: string[], day: number): Promise<_Response> {
     try {
+        return { status: 200 }
         const res = await axios.post(serverURL + "/update-schedule", {
             day,
             newEvents: events,
             deletedEventsId
         }, { timeout: 10000 })
-        return { status: 200 }
     } catch (error: any) {
         return errorHandler(error)
     }
