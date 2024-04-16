@@ -1,2 +1,2 @@
 #### Aktueller Stand
-<img src="./app.jpeg" width="400px" />
+<img src="./app.jpeg" width="250px" />
